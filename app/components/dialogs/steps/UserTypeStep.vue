@@ -25,6 +25,16 @@ const emit = defineEmits<{ choose: [type: UserType] }>()
         <span class="card-arrow" aria-hidden="true">→</span>
       </button>
     </div>
+    <NuxtLink class="consulta-libre" to="/disponibilidad">
+      <span class="card-copy"><strong>Solo quiero mirar</strong><small>Consultá qué lugares y notebooks hay disponibles, sin ingresar.</small></span>
+      <span class="card-arrow" aria-hidden="true">→</span>
+    </NuxtLink>
+
     <p class="step-note"><span>i</span> Tus datos se utilizan únicamente para gestionar la reserva.</p>
   </div>
 </template>
+
+<style scoped>
+.consulta-libre { display: flex; align-items: center; gap: 15px; margin-top: 12px; padding: 16px 19px; border: 1px dashed #abbcb3; color: var(--ink); text-decoration: none; transition: border-color .2s; }
+.consulta-libre:hover { border-color: var(--forest); }
+</style>
