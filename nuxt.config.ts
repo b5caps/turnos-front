@@ -16,4 +16,12 @@ export default defineNuxtConfig({
     vite: {
         plugins: [tailwindcss()],
     },
+  app: {
+    head: {
+      title: 'SIREB',
+      link: [
+        { rel: 'icon', type: 'image/png', href: '/logo%20utn%20blanco.png' },
+      ],
+    },
+  },
 });

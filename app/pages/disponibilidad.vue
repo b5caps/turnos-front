@@ -16,7 +16,7 @@ onMounted(cargar)
     <span class="sireb-orbit sireb-orbit--top" aria-hidden="true"></span><span class="sireb-orbit sireb-orbit--bottom" aria-hidden="true"></span>
     <section class="auth-dialog" aria-labelledby="disponibilidad-titulo">
       <header class="dialog-header">
-        <span class="brand-mark" aria-hidden="true">S</span>
+        <span class="brand-mark"><img src="/logo%20utn%20blanco.png" alt="Logo UTN"></span>
         <div><p class="eyebrow">Biblioteca universitaria</p><h1 id="disponibilidad-titulo">Disponibilidad</h1><p class="dialog-subtitle">Consultá qué lugares y notebooks hay disponibles</p></div>
         <NuxtLink class="disponibilidad__volver" to="/">Ingresar</NuxtLink>
       </header>

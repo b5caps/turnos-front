@@ -26,7 +26,7 @@ const emit = defineEmits<{ choose: [type: UserType] }>()
       </button>
     </div>
     <NuxtLink class="consulta-libre" to="/disponibilidad">
-      <span class="card-copy"><strong>Solo quiero mirar</strong><small>Consultá qué lugares y notebooks hay disponibles, sin ingresar.</small></span>
+      <span class="card-copy"><strong>Visualizar disponibilidad de recursos</strong><small>Consultá qué lugares y notebooks hay disponibles, sin ingresar.</small></span>
       <span class="card-arrow" aria-hidden="true">→</span>
     </NuxtLink>
 
