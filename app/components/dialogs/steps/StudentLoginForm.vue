@@ -38,7 +38,7 @@ function handleSubmit() {
   <div class="student-login-step-wrapper">
     <div class="step-intro">
       <p class="section-kicker">Acceso de estudiante</p>
-      <h2>Ingresá a SIREB</h2>
+      <h2>Ingresá a GREB</h2>
       <p>Usá las mismas credenciales que utilizás en Sysacad.</p>
     </div>
     <form class="form-fields" @submit.prevent="handleSubmit">

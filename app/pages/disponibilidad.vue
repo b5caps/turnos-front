@@ -12,8 +12,8 @@ onMounted(cargar)
 </script>
 
 <template>
-  <main class="sireb-shell">
-    <span class="sireb-orbit sireb-orbit--top" aria-hidden="true"></span><span class="sireb-orbit sireb-orbit--bottom" aria-hidden="true"></span>
+  <main class="greb-shell">
+    <span class="greb-orbit greb-orbit--top" aria-hidden="true"></span><span class="greb-orbit greb-orbit--bottom" aria-hidden="true"></span>
     <section class="auth-dialog" aria-labelledby="disponibilidad-titulo">
       <header class="dialog-header">
         <span class="brand-mark"><img src="/logo%20utn%20blanco.png" alt="Logo UTN"></span>
@@ -32,7 +32,7 @@ onMounted(cargar)
         </EstadoDisponibilidad>
       </div>
 
-      <footer class="dialog-footer"><span>SIREB · Biblioteca</span><span>Lunes a viernes, 10 a 22</span></footer>
+      <footer class="dialog-footer"><span>GREB · Biblioteca</span><span>Lunes a viernes, 10 a 22</span></footer>
     </section>
   </main>
 </template>

@@ -16,7 +16,7 @@ const emit = defineEmits<{ choose: [type: UserType] }>()
     <div class="user-type-grid">
       <button class="user-type-card" :class="{ 'user-type-card--selected': selected === 'student' }" type="button" @click="emit('choose', 'student')">
         <span class="card-icon" aria-hidden="true">⌂</span>
-        <span class="card-copy"><strong>Estudiantes</strong><small>Ingresá con tu legajo y contraseña de Sysacad.</small></span>
+        <span class="card-copy"><strong>Usuario UTN</strong><small>Ingresá con tu legajo y contraseña de Sysacad.</small></span>
         <span class="card-arrow" aria-hidden="true">→</span>
       </button>
       <button class="user-type-card" :class="{ 'user-type-card--selected': selected === 'external' }" type="button" @click="emit('choose', 'external')">

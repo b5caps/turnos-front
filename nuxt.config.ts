@@ -18,7 +18,7 @@ export default defineNuxtConfig({
     },
   app: {
     head: {
-      title: 'SIREB',
+      title: 'GREB',
       link: [
         { rel: 'icon', type: 'image/png', href: '/logo%20utn%20blanco.png' },
       ],

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import SirebAuthDialog from '~/components/dialogs/SirebAuthDialog.vue'
+import GrebAuthDialog from '~/components/dialogs/GrebAuthDialog.vue'
 </script>
 
 <template>
-  <SirebAuthDialog />
+  <GrebAuthDialog />
 </template>

@@ -1,7 +1,7 @@
 import { computed, reactive, ref } from 'vue'
 import type { DialogStep, ExternalRegistration, ResourceBooking, StudentCredentials, UserType } from '~/types'
 
-export function useSirebAuth() {
+export function useGrebAuth() {
   const step = ref<DialogStep>(1)
   const userType = ref<UserType | null>(null)
   const isSubmitting = ref(false)

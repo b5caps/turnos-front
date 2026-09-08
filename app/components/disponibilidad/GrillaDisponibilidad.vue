@@ -33,7 +33,7 @@ const filas = computed(() => props.bloques.map((inicio, indice) => ({
       && desdeSeleccionado.value >= 0
       && indice >= desdeSeleccionado.value
       && indice < desdeSeleccionado.value + props.bloquesSeleccionados
-    return { clave: `${recurso.id}-${inicio}`, recursoId: recurso.id, inicio, estado, elegible, dentroSeleccion, ...contenidoDe(recurso, bloque, estado) }
+    return { clave: `${recurso.id}-${inicio}`, recursoId: recurso.id, tipo: recurso.tipo, inicio, estado, elegible, dentroSeleccion, ...contenidoDe(recurso, bloque, estado) }
   }),
 })))
 
@@ -41,12 +41,12 @@ function contenidoDe(recurso: RecursoDisponibilidad, bloque: BloqueDisponibilida
   const esNotebook = recurso.tipo === 'NOTEBOOK'
   if (estado === 'disponible' && bloque) {
     const unico = bloque.cuposLibres === 1
-    const palabra = esNotebook ? (unico ? 'disponible' : 'disponibles') : (unico ? 'libre' : 'libres')
-    return { valor: String(bloque.cuposLibres), palabra }
+    const palabra = esNotebook ? 'Disponible' : (unico ? 'libre' : 'libres')
+    return { valor: esNotebook ? '' : String(bloque.cuposLibres), palabra }
   }
   if (estado === 'pasado') return { valor: '', palabra: '—' }
-  if (estado === 'sin_cupos') return { valor: '', palabra: esNotebook ? 'sin equipos' : 'completa' }
-  if (estado === 'bloqueado') return { valor: '', palabra: esNotebook ? 'bloqueadas' : 'bloqueada' }
+  if (estado === 'sin_cupos') return { valor: '', palabra: esNotebook ? 'No disponible' : 'completa' }
+  if (estado === 'bloqueado') return { valor: '', palabra: esNotebook ? 'No disponible' : 'bloqueada' }
   return { valor: '', palabra: 'cerrada' }
 }
 </script>
@@ -68,7 +68,7 @@ function contenidoDe(recurso: RecursoDisponibilidad, bloque: BloqueDisponibilida
             v-for="celda in fila.celdas"
             :key="celda.clave"
             class="grilla__celda"
-            :class="[`grilla__celda--${celda.estado}`, { 'grilla__celda--punto': fila.enPunto, 'grilla__celda--numerica': celda.valor, 'grilla__celda--elegible': celda.elegible, 'grilla__celda--elegida': celda.dentroSeleccion }]"
+            :class="[`grilla__celda--${celda.estado}`, { 'grilla__celda--punto': fila.enPunto, 'grilla__celda--numerica': celda.valor, 'grilla__celda--elegible': celda.elegible, 'grilla__celda--elegida': celda.dentroSeleccion, 'rounded-full m-1 w-[calc(100%-8px)] text-[11px] bg-[#f0f2ec] text-[#71807a]': celda.tipo === 'NOTEBOOK' }]"
             :type="celda.elegible ? 'button' : undefined"
             @click="celda.elegible && emit('seleccionar', celda.recursoId, celda.inicio)"
           >
