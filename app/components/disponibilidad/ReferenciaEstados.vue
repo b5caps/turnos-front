@@ -4,7 +4,7 @@ const estados = [
   { clave: 'sin_cupos', etiqueta: 'Completa' },
   { clave: 'bloqueado', etiqueta: 'Bloqueada por biblioteca' },
   { clave: 'fuera_de_horario', etiqueta: 'Fuera de horario' },
-  { clave: 'pasado', etiqueta: 'Ya pasó' },
+  { clave: 'notebook', etiqueta: 'Notebooks disponibles' },
 ]
 </script>
 
@@ -24,5 +24,5 @@ const estados = [
 .referencia__muestra--sin_cupos { background: #fbe3da; }
 .referencia__muestra--bloqueado { background: #eceee7; }
 .referencia__muestra--fuera_de_horario { background: #f7f7f3; }
-.referencia__muestra--pasado { background: #f7f7f3; border-style: dashed; }
+.referencia__muestra--notebook { background: #bcd8ee; }
 </style>

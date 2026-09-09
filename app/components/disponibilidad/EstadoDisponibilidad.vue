@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ cargando: boolean; errorMessage: string; abierta: boolean }>()
+defineProps<{ cargando: boolean; errorMessage: string; abierta: boolean; sinBloques?: boolean }>()
 const emit = defineEmits<{ reintentar: [] }>()
 </script>
 
@@ -10,6 +10,7 @@ const emit = defineEmits<{ reintentar: [] }>()
     <button class="button button--quiet" type="button" @click="emit('reintentar')">Reintentar</button>
   </div>
   <p v-else-if="!abierta" class="estado">La biblioteca no abre este día. Atiende de lunes a viernes, de 10 a 22.</p>
+  <p v-else-if="sinBloques" class="estado">Por hoy la biblioteca ya cerró. Mirá los próximos días.</p>
   <slot v-else />
 </template>
 

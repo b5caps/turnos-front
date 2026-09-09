@@ -26,7 +26,7 @@ onMounted(cargar)
 
         <FiltroSalas v-if="abierta && salas.length" :salas="salas" :seleccionada="salaSeleccionada" @seleccionar="seleccionarSala" />
 
-        <EstadoDisponibilidad :abierta="abierta" :cargando="cargando" :error-message="errorMessage" @reintentar="cargar">
+        <EstadoDisponibilidad :abierta="abierta" :cargando="cargando" :error-message="errorMessage" :sin-bloques="!bloques.length" @reintentar="cargar">
           <GrillaDisponibilidad :bloques="bloques" :estado-de="estadoDe" :recursos="recursosVisibles" />
           <ReferenciaEstados />
         </EstadoDisponibilidad>

@@ -42,3 +42,7 @@ resetFlow()
     </section>
   </main>
 </template>
+
+<style scoped>
+.dialog-body--ancho { grid-template-columns: 1fr; }
+</style>

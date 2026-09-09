@@ -26,11 +26,20 @@ export function useDisponibilidad() {
     return ahora.getHours() * 60 + ahora.getMinutes()
   })
 
+  const desdeVisible = computed(() => {
+    if (!esHoy.value) return 0
+    const indice = bloques.findIndex(inicio => horaAMinutos(inicio) + BLOQUE_MINUTOS > minutosAhora.value)
+    return indice < 0 ? bloques.length : indice
+  })
+
+  const bloquesVisibles = computed(() => bloques.slice(desdeVisible.value))
+
   const recursosVisibles = computed<RecursoDisponibilidad[]>(() => {
     const elegidas = salaSeleccionada.value === null
       ? salas.value
       : salas.value.filter(sala => sala.id === salaSeleccionada.value)
-    return notebooks.value ? [...elegidas, notebooks.value] : elegidas
+    const lista = notebooks.value ? [...elegidas, notebooks.value] : elegidas
+    return lista.map(recurso => ({ ...recurso, bloques: recurso.bloques.slice(desdeVisible.value) }))
   })
 
   async function cargar() {
@@ -98,7 +107,7 @@ export function useDisponibilidad() {
   }
 
   return {
-    bloques,
+    bloques: bloquesVisibles,
     fecha,
     cargando,
     errorMessage,
