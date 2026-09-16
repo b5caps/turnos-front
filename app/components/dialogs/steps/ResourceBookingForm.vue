@@ -41,7 +41,7 @@ onMounted(cargar)
     <div v-else class="flex flex-col gap-4.5">
       <div>
         <h2 :class="INTRO_TITULO">Reservá un recurso</h2>
-        <p :class="INTRO_TEXTO">Elegí un horario libre en la grilla.</p>
+        <p :class="INTRO_TEXTO">Elegí el horario inicial en la grilla</p>
       </div>
 
       <SelectorFecha :deshabilitado="cargando" :es-hoy="esHoy" :fecha="fecha" @hoy="irAHoy" @mover="moverDias" @update:fecha="irAFecha" />
@@ -53,6 +53,7 @@ onMounted(cargar)
       </EstadoDisponibilidad>
 
       <div v-if="listo" class="flex flex-wrap items-center justify-between gap-4 border-l-[3px] border-forest bg-mint/40 p-3.5">
+        <h3 class="m-0 text-m font-bold text-forest">Selecciona la duración</h3>
         <p class="m-0 text-tiny"><strong>{{ salaElegida?.nombre }}</strong> · {{ seleccion?.inicio }} a {{ fin }}</p>
         <label class="flex flex-row items-center gap-2.5 text-mini font-bold text-field-label">
           Duración
