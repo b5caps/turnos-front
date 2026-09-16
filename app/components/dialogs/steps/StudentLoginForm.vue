@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { ACCIONES, BOTON_PRIMARIO, BOTON_SUAVE, CAMPO, ERROR, ETIQUETA, FLECHA_BOTON, INTRO, INTRO_TEXTO, INTRO_TITULO, KICKER } from '~/constants/estilos'
 import type { StudentCredentials } from '~/types'
 
 const props = defineProps<{ modelValue: StudentCredentials; loading?: boolean; error?: string }>()
@@ -35,17 +36,20 @@ function handleSubmit() {
 </script>
 
 <template>
-  <div class="student-login-step-wrapper">
-    <div class="step-intro">
-      <p class="section-kicker">Acceso de estudiante</p>
-      <h2>Ingresá a GREB</h2>
-      <p>Usá las mismas credenciales que utilizás en Sysacad.</p>
+  <div>
+    <div :class="INTRO">
+      <p :class="KICKER">Acceso de estudiante</p>
+      <h2 :class="INTRO_TITULO">Ingresá a GREB</h2>
+      <p :class="INTRO_TEXTO">Usá las mismas credenciales que utilizás en Sysacad.</p>
     </div>
-    <form class="form-fields" @submit.prevent="handleSubmit">
-      <label>Legajo<input v-model="legajo" autocomplete="username" inputmode="numeric" placeholder="Ej. 16868" required type="text"></label>
-      <label>Contraseña de Sysacad<input v-model="password" autocomplete="current-password" placeholder="Ingresá tu contraseña" required type="password"></label>
-      <p v-if="localError || props.error" class="form-error">{{ localError || props.error }}</p>
-      <div class="form-actions"><button class="button button--quiet" type="button" @click="emit('back')">← Volver</button><button class="button button--primary" :disabled="loading" type="submit">{{ loading ? 'Verificando...' : 'Continuar' }} <span>→</span></button></div>
+    <form class="grid gap-4" @submit.prevent="handleSubmit">
+      <label :class="ETIQUETA">Legajo<input v-model="legajo" autocomplete="username" :class="CAMPO" inputmode="numeric" placeholder="Ej. 16868" required type="text"></label>
+      <label :class="ETIQUETA">Contraseña de Sysacad<input v-model="password" autocomplete="current-password" :class="CAMPO" placeholder="Ingresá tu contraseña" required type="password"></label>
+      <p v-if="localError || props.error" :class="ERROR">{{ localError || props.error }}</p>
+      <div :class="ACCIONES">
+        <button :class="BOTON_SUAVE" type="button" @click="emit('back')">← Volver</button>
+        <button :class="BOTON_PRIMARIO" :disabled="loading" type="submit">{{ loading ? 'Verificando...' : 'Continuar' }} <span :class="FLECHA_BOTON">→</span></button>
+      </div>
     </form>
   </div>
 </template>

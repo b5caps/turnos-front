@@ -4,6 +4,7 @@ import EstadoDisponibilidad from '~/components/disponibilidad/EstadoDisponibilid
 import FiltroSalas from '~/components/disponibilidad/FiltroSalas.vue'
 import GrillaDisponibilidad from '~/components/disponibilidad/GrillaDisponibilidad.vue'
 import SelectorFecha from '~/components/disponibilidad/SelectorFecha.vue'
+import { ACCIONES, BOTON_PRIMARIO, BOTON_SUAVE, ERROR, FLECHA_BOTON, INTRO_TEXTO, INTRO_TITULO } from '~/constants/estilos'
 import { BLOQUE_MINUTOS, etiquetaDuracion, horaAMinutos, minutosAHora } from '~/constants/horarios'
 import type { ResourceBooking } from '~/types'
 
@@ -17,6 +18,10 @@ const salaElegida = computed(() => salas.value.find(sala => sala.id === seleccio
 const fin = computed(() => seleccion.value && duracion.value ? minutosAHora(horaAMinutos(seleccion.value.inicio) + duracion.value) : '')
 const notebooksLibres = computed(() => seleccion.value ? notebooksEnVentana(seleccion.value.inicio, duracion.value) : 0)
 const listo = computed(() => Boolean(salaElegida.value && duracion.value))
+
+const SELECT = 'w-auto cursor-pointer border border-line bg-white px-3 py-3 text-xs text-ink outline-none transition focus:border-forest focus:shadow-focus'
+const TICK = 'flex cursor-pointer flex-row items-start gap-2.5 text-mini font-bold text-field-label'
+
 function elegir(recursoId: number, inicio: string) { seleccion.value = { recursoId, inicio }; duracion.value = duraciones.value[0] ?? 0 }
 function actualizarBooleano(campo: 'wantsComputer' | 'computerConditionsAccepted', valor: boolean) { emit('update:modelValue', { ...props.modelValue, [campo]: valor, ...(campo === 'wantsComputer' && !valor ? { computerConditionsAccepted: false } : {}) }) }
 function sincronizar() { emit('update:modelValue', { ...props.modelValue, resource: salaElegida.value?.nombre ?? '', date: fecha.value, startTime: seleccion.value?.inicio ?? '', endTime: fin.value }) }
@@ -27,17 +32,59 @@ onMounted(cargar)
 </script>
 
 <template>
-	<div class="resource-booking-step-wrapper">
-		<div v-if="completed" class="success-message"><strong>Reserva solicitada</strong><p>Tu solicitud fue registrada correctamente.</p></div>
-		<div v-else class="reserva">
-			<div class="step-intro"><h2>Reservá un recurso</h2><p>Elegí un horario libre en la grilla.</p></div>
-			<SelectorFecha :deshabilitado="cargando" :es-hoy="esHoy" :fecha="fecha" @hoy="irAHoy" @mover="moverDias" @update:fecha="irAFecha" />
-			<FiltroSalas v-if="abierta && salas.length" :salas="salas" :seleccionada="salaSeleccionada" @seleccionar="seleccionarSala" />
-			<EstadoDisponibilidad :abierta="abierta" :cargando="cargando" :error-message="errorMessage" @reintentar="cargar"><GrillaDisponibilidad :bloques="bloques" :bloques-seleccionados="duracion / BLOQUE_MINUTOS" compacto :estado-de="estadoDe" :recursos="recursosVisibles" seleccionable :seleccion="seleccion" @seleccionar="elegir" /></EstadoDisponibilidad>
-			<div v-if="listo" class="reserva__detalle"><p class="reserva__resumen"><strong>{{ salaElegida?.nombre }}</strong> · {{ seleccion?.inicio }} a {{ fin }}</p><label class="reserva__duracion">Duración<select :value="duracion" @change="duracion = Number(($event.target as HTMLSelectElement).value)"><option v-for="opcion in duraciones" :key="opcion" :value="opcion">{{ etiquetaDuracion(opcion) }}</option></select></label></div>
-			<label v-if="listo && notebooksLibres" class="checkbox-field"><input :checked="modelValue.wantsComputer" type="checkbox" @change="actualizarBooleano('wantsComputer', ($event.target as HTMLInputElement).checked)"><span><strong>¿Querés sumar una notebook?</strong><small>Solo se usan dentro de la biblioteca, durante tu reserva.</small></span></label>
-			<div v-if="modelValue.wantsComputer" class="conditions-box"><strong>Condiciones de uso de la notebook</strong><p>El uso está limitado al horario reservado y a la normativa de la biblioteca.</p><label class="conditions-check"><input :checked="modelValue.computerConditionsAccepted" type="checkbox" @change="actualizarBooleano('computerConditionsAccepted', ($event.target as HTMLInputElement).checked)"><span>Acepto las condiciones</span></label></div>
-			<p v-if="error" class="form-error">{{ error }}</p><div class="form-actions"><button class="button button--quiet" type="button" @click="emit('back')">← Volver</button><button class="button button--primary" :disabled="!listo || (modelValue.wantsComputer && !modelValue.computerConditionsAccepted)" type="button" @click="emit('submit')">Confirmar reserva <span>→</span></button></div>
-		</div>
-	</div>
+  <div>
+    <div v-if="completed" class="mb-4.5 flex items-center gap-3 bg-success p-3 text-xs text-forest">
+      <strong>Reserva solicitada</strong>
+      <p class="mt-1 text-mini text-muted">Tu solicitud fue registrada correctamente.</p>
+    </div>
+
+    <div v-else class="flex flex-col gap-4.5">
+      <div>
+        <h2 :class="INTRO_TITULO">Reservá un recurso</h2>
+        <p :class="INTRO_TEXTO">Elegí un horario libre en la grilla.</p>
+      </div>
+
+      <SelectorFecha :deshabilitado="cargando" :es-hoy="esHoy" :fecha="fecha" @hoy="irAHoy" @mover="moverDias" @update:fecha="irAFecha" />
+
+      <FiltroSalas v-if="abierta && salas.length" :salas="salas" :seleccionada="salaSeleccionada" @seleccionar="seleccionarSala" />
+
+      <EstadoDisponibilidad :abierta="abierta" :cargando="cargando" :error-message="errorMessage" :sin-bloques="!bloques.length" @reintentar="cargar">
+        <GrillaDisponibilidad :bloques="bloques" :bloques-seleccionados="duracion / BLOQUE_MINUTOS" compacto :estado-de="estadoDe" :recursos="recursosVisibles" seleccionable :seleccion="seleccion" @seleccionar="elegir" />
+      </EstadoDisponibilidad>
+
+      <div v-if="listo" class="flex flex-wrap items-center justify-between gap-4 border-l-[3px] border-forest bg-mint/40 p-3.5">
+        <p class="m-0 text-tiny"><strong>{{ salaElegida?.nombre }}</strong> · {{ seleccion?.inicio }} a {{ fin }}</p>
+        <label class="flex flex-row items-center gap-2.5 text-mini font-bold text-field-label">
+          Duración
+          <select :class="SELECT" :value="duracion" @change="duracion = Number(($event.target as HTMLSelectElement).value)">
+            <option v-for="opcion in duraciones" :key="opcion" :value="opcion">{{ etiquetaDuracion(opcion) }}</option>
+          </select>
+        </label>
+      </div>
+
+      <label v-if="listo && notebooksLibres" :class="[TICK, 'border border-line bg-white p-3']">
+        <input :checked="modelValue.wantsComputer" class="mt-px size-4 accent-forest" type="checkbox" @change="actualizarBooleano('wantsComputer', ($event.target as HTMLInputElement).checked)">
+        <span class="flex flex-col gap-1">
+          <strong>¿Querés sumar una notebook?</strong>
+          <small class="text-mini leading-normal font-normal text-muted">Solo se usan dentro de la biblioteca, durante tu reserva.</small>
+        </span>
+      </label>
+
+      <div v-if="modelValue.wantsComputer" class="border-l-[3px] border-coral bg-conditions p-3.5 text-xs text-ink">
+        <strong>Condiciones de uso de la notebook</strong>
+        <p class="mt-1.5 mb-2.5 text-mini leading-normal text-muted">El uso está limitado al horario reservado y a la normativa de la biblioteca.</p>
+        <label :class="[TICK, 'items-center text-xs']">
+          <input :checked="modelValue.computerConditionsAccepted" class="size-4 accent-forest" type="checkbox" @change="actualizarBooleano('computerConditionsAccepted', ($event.target as HTMLInputElement).checked)">
+          <span>Acepto las condiciones</span>
+        </label>
+      </div>
+
+      <p v-if="error" :class="ERROR">{{ error }}</p>
+
+      <div :class="ACCIONES">
+        <button :class="BOTON_SUAVE" type="button" @click="emit('back')">← Volver</button>
+        <button :class="BOTON_PRIMARIO" :disabled="!listo || (modelValue.wantsComputer && !modelValue.computerConditionsAccepted)" type="button" @click="emit('submit')">Confirmar reserva <span :class="FLECHA_BOTON">→</span></button>
+      </div>
+    </div>
+  </div>
 </template>

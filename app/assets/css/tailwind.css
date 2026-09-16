@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Trebuchet MS', 'Segoe UI', sans-serif;
+  --font-serif: Georgia, serif;
+
+  --breakpoint-tablet: 720px;
+
+  --text-micro: 10px;
+  --text-mini: 11px;
+  --text-tiny: 13px;
+
+  --color-ink: #1d2a27;
+  --color-muted: #71807a;
+  --color-faint: #b5beb8;
+  --color-forest: #205e53;
+  --color-forest-deep: #16544a;
+  --color-mint: #d9eee7;
+  --color-paper: #fbfaf6;
+  --color-line: #e5e8e0;
+  --color-hairline: #f0f2ec;
+  --color-coral: #ee795e;
+  --color-coral-dark: #da654c;
+  --color-danger: #bd543f;
+
+  --color-shell: #dce9df;
+  --color-shell-from: #e2eee3;
+  --color-shell-to: #cce0d6;
+  --color-aside-copy: #b9d6ca;
+  --color-aside-kicker: #a9dbc3;
+
+  --color-full: #fbe3da;
+  --color-full-ink: #a8442f;
+  --color-blocked: #eceee7;
+  --color-blocked-ink: #6b7872;
+  --color-closed: #f7f7f3;
+  --color-past-ink: #cbd2cb;
+  --color-notebook: #bcd8ee;
+  --color-notebook-ink: #14486f;
+  --color-notebook-off: #f4f2ec;
+  --color-notebook-off-ink: #8d8a80;
+
+  --color-field-label: #53635d;
+  --color-external: #fce8de;
+  --color-conditions: #fff4ef;
+  --color-success: #e7f4ed;
+  --color-footer: #9ba7a1;
+  --color-hint: #abbcb3;
+  --color-track: #e5ebe4;
+
+  --shadow-dialog: 0 28px 70px rgb(35 70 58 / 0.16);
+  --shadow-card: 0 7px 18px rgb(32 94 83 / 0.09);
+  --shadow-primary: 0 7px 16px rgb(238 121 94 / 0.2);
+  --shadow-focus: 0 0 0 3px rgb(32 94 83 / 0.1);
+
+  --animate-rise: rise 0.55s ease both;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(13px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}

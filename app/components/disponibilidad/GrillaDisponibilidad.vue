@@ -15,34 +15,58 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ seleccionar: [recursoId: number, inicio: string] }>()
 
+const COLOR_SALA: Record<EstadoBloque, string> = {
+  disponible: 'bg-mint text-forest-deep',
+  sin_cupos: 'bg-full text-full-ink',
+  bloqueado: 'bg-blocked text-blocked-ink',
+  fuera_de_horario: 'bg-closed text-faint',
+  pasado: 'bg-closed text-past-ink',
+}
+
+const COLOR_NOTEBOOK: Record<EstadoBloque, string> = {
+  disponible: 'bg-notebook text-notebook-ink',
+  sin_cupos: 'bg-full text-full-ink',
+  bloqueado: 'bg-notebook-off text-notebook-off-ink',
+  fuera_de_horario: 'bg-notebook-off text-notebook-off-ink',
+  pasado: 'bg-notebook-off text-notebook-off-ink',
+}
+
 const columnas = computed(() => `72px repeat(${props.recursos.length}, minmax(0, 1fr))`)
 const desdeSeleccionado = computed(() => (props.seleccion ? props.bloques.indexOf(props.seleccion.inicio) : -1))
 const cierre = computed(() => {
   const ultimo = props.bloques[props.bloques.length - 1]
   return ultimo ? minutosAHora(horaAMinutos(ultimo) + BLOQUE_MINUTOS) : ''
 })
+const ocultarPalabra = computed(() => props.compacto)
 
 const filas = computed(() => props.bloques.map((inicio, indice) => ({
   inicio,
   enPunto: inicio.endsWith(':00'),
   celdas: props.recursos.map(recurso => {
+    const esNotebook = recurso.tipo === 'NOTEBOOK'
     const bloque = recurso.bloques[indice]
     const estado = bloque ? props.estadoDe(bloque) : ('fuera_de_horario' as EstadoBloque)
-    const elegible = props.seleccionable && recurso.tipo === 'SALA' && estado === 'disponible'
+    const elegible = props.seleccionable && !esNotebook && estado === 'disponible'
     const dentroSeleccion = props.seleccion?.recursoId === recurso.id
       && desdeSeleccionado.value >= 0
       && indice >= desdeSeleccionado.value
       && indice < desdeSeleccionado.value + props.bloquesSeleccionados
-    return { clave: `${recurso.id}-${inicio}`, recursoId: recurso.id, tipo: recurso.tipo, inicio, estado, elegible, dentroSeleccion, ...contenidoDe(recurso, bloque, estado) }
+    return {
+      clave: `${recurso.id}-${inicio}`,
+      recursoId: recurso.id,
+      inicio,
+      esNotebook,
+      elegible,
+      color: dentroSeleccion ? 'bg-forest font-bold text-white' : (esNotebook ? COLOR_NOTEBOOK[estado] : COLOR_SALA[estado]),
+      ...contenidoDe(esNotebook, bloque, estado),
+    }
   }),
 })))
 
-function contenidoDe(recurso: RecursoDisponibilidad, bloque: BloqueDisponibilidad | undefined, estado: EstadoBloque) {
-  const esNotebook = recurso.tipo === 'NOTEBOOK'
+function contenidoDe(esNotebook: boolean, bloque: BloqueDisponibilidad | undefined, estado: EstadoBloque) {
   if (estado === 'disponible' && bloque) {
-    const unico = bloque.cuposLibres === 1
-    const palabra = esNotebook ? 'Disponible' : (unico ? 'libre' : 'libres')
-    return { valor: esNotebook ? '' : String(bloque.cuposLibres), palabra }
+    if (esNotebook) return { valor: '', palabra: 'Disponible' }
+    return { valor: String(bloque.cuposLibres), palabra: bloque.cuposLibres === 1 ? 'libre' : 'libres' }
   }
   if (estado === 'pasado') return { valor: '', palabra: '—' }
   if (estado === 'sin_cupos') return { valor: '', palabra: esNotebook ? 'No disponible' : 'completa' }
@@ -52,88 +76,45 @@ function contenidoDe(recurso: RecursoDisponibilidad, bloque: BloqueDisponibilida
 </script>
 
 <template>
-  <div class="grilla" :class="{ 'grilla--compacto': compacto }">
-    <div class="grilla__scroll">
-      <div class="grilla__tabla" :style="{ gridTemplateColumns: columnas }">
-        <div class="grilla__esquina"></div>
-        <div v-for="recurso in recursos" :key="`encabezado-${recurso.id}`" class="grilla__encabezado">
-          <strong>{{ recurso.nombre }}</strong>
-          <small>{{ recurso.tipo === 'NOTEBOOK' ? `${recurso.capacidad} equipos` : `${recurso.capacidad} lugares` }}</small>
-        </div>
-
-        <template v-for="fila in filas" :key="fila.inicio">
-          <div class="grilla__hora" :class="{ 'grilla__hora--punto': fila.enPunto }">{{ fila.inicio }}</div>
-          <component
-            :is="celda.elegible ? 'button' : 'div'"
-            v-for="celda in fila.celdas"
-            :key="celda.clave"
-            class="grilla__celda"
-            :class="[`grilla__celda--${celda.estado}`, { 'grilla__celda--punto': fila.enPunto, 'grilla__celda--numerica': celda.valor, 'grilla__celda--elegible': celda.elegible, 'grilla__celda--elegida': celda.dentroSeleccion, 'rounded-full m-1 w-[calc(100%-8px)] text-[11px] bg-[#f0f2ec] text-[#71807a]': celda.tipo === 'NOTEBOOK' }]"
-            :type="celda.elegible ? 'button' : undefined"
-            @click="celda.elegible && emit('seleccionar', celda.recursoId, celda.inicio)"
-          >
-            <span v-if="celda.valor" class="grilla__valor">{{ celda.valor }}</span><span class="grilla__palabra">{{ celda.palabra }}</span>
-          </component>
-        </template>
-
-        <div class="grilla__cierre"><span>{{ cierre }}</span> cierra la biblioteca</div>
+  <div class="border border-line bg-paper">
+    <div class="grid" :class="compacto ? 'text-mini' : 'text-xs max-tablet:text-mini'" :style="{ gridTemplateColumns: columnas }">
+      <div class="sticky top-0 z-1 border-b border-line bg-paper"></div>
+      <div v-for="recurso in recursos" :key="`encabezado-${recurso.id}`" class="sticky top-0 z-1 flex flex-col items-center gap-0.5 border-b border-line bg-paper px-2 py-3 max-tablet:px-1 max-tablet:py-2.5">
+        <strong class="text-tiny max-tablet:text-xs">{{ recurso.nombre }}</strong>
+        <small class="text-micro text-muted">{{ recurso.tipo === 'NOTEBOOK' ? `${recurso.capacidad} equipos` : `${recurso.capacidad} lugares` }}</small>
       </div>
 
       <template v-for="fila in filas" :key="fila.inicio">
-        <div class="grilla__hora" :class="{ 'grilla__hora--punto': fila.enPunto }">{{ fila.inicio }}</div>
+        <div
+          class="border-t border-hairline"
+          :class="[
+            compacto ? 'p-1.5 text-micro' : 'px-2.5 py-1 text-mini max-tablet:p-1.5 max-tablet:text-micro',
+            fila.enPunto ? 'font-bold text-muted' : 'text-faint',
+          ]"
+        >{{ fila.inicio }}</div>
         <component
           :is="celda.elegible ? 'button' : 'div'"
           v-for="celda in fila.celdas"
           :key="celda.clave"
-          class="grilla__celda"
-          :class="[`grilla__celda--${celda.estado}`, { 'grilla__celda--punto': fila.enPunto, 'grilla__celda--numerica': celda.valor, 'grilla__celda--elegible': celda.elegible, 'grilla__celda--elegida': celda.dentroSeleccion, 'grilla__celda--informativa': celda.informativa }]"
+          class="m-px flex w-full items-center justify-center gap-1 border-0 border-t border-t-transparent text-center leading-tight font-[inherit]"
+          :class="[
+            celda.color,
+            compacto ? 'px-1 py-1.5' : 'p-1 max-tablet:px-1 max-tablet:py-1.5',
+            fila.enPunto && 'border-t-hairline',
+            celda.esNotebook && 'border-l border-l-line',
+            celda.elegible && 'hover:outline hover:-outline-offset-1 hover:outline-forest',
+          ]"
           :type="celda.elegible ? 'button' : undefined"
           @click="celda.elegible && emit('seleccionar', celda.recursoId, celda.inicio)"
         >
-          <span v-if="celda.valor" class="grilla__valor">{{ celda.valor }}</span><span class="grilla__palabra">{{ celda.palabra }}</span>
+          <span v-if="celda.valor" :class="ocultarPalabra ? 'text-tiny font-bold' : 'max-tablet:text-tiny max-tablet:font-bold'">{{ celda.valor }}</span>
+          <span :class="celda.valor && (ocultarPalabra ? 'hidden' : 'max-tablet:hidden')">{{ celda.palabra }}</span>
         </component>
       </template>
 
-      <div class="grilla__cierre"><span>{{ cierre }}</span> cierra la biblioteca</div>
+      <div class="col-span-full flex items-center gap-2.5 border-t border-line px-2.5 py-2 text-micro text-faint">
+        <span class="text-mini font-bold text-muted">{{ cierre }}</span> cierra la biblioteca
+      </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.grilla { border: 1px solid var(--line); background: var(--paper); }
-.grilla__tabla { display: grid; gap: 0; font-size: 12px; }
-.grilla__esquina, .grilla__encabezado { position: sticky; top: 0; z-index: 1; background: var(--paper); border-bottom: 1px solid var(--line); }
-.grilla__encabezado { display: flex; flex-direction: column; gap: 2px; align-items: center; padding: 12px 8px; }
-.grilla__encabezado strong { font-size: 13px; }
-.grilla__encabezado small { color: var(--muted); font-size: 10px; }
-.grilla__hora { padding: 5px 10px; color: #b5beb8; font-size: 11px; border-top: 1px solid #f0f2ec; }
-.grilla__hora--punto { color: var(--muted); font-weight: 700; }
-.grilla__celda { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; text-align: center; line-height: 1.25; font: inherit; padding: 5px 5px; margin: 1px; border: 0; border-top: 1px solid transparent; }
-.grilla__celda--punto { border-top-color: #f0f2ec; }
-.grilla__celda--disponible { background: var(--mint); color: #16544a; }
-.grilla__celda--sin_cupos { background: #fbe3da; color: #a8442f; }
-.grilla__celda--bloqueado { background: #eceee7; color: #6b7872; }
-.grilla__celda--fuera_de_horario { background: #f7f7f3; color: #b5beb8; }
-.grilla__celda--pasado { background: #f7f7f3; color: #cbd2cb; }
-.grilla__celda--informativa { background: #f4f2ec; color: #8d8a80; border-left: 1px solid var(--line); }
-.grilla__celda--informativa.grilla__celda--disponible { background: #bcd8ee; color: #14486f; }
-.grilla__celda--informativa.grilla__celda--sin_cupos { background: #fbe3da; color: #a8442f; }
-.grilla__celda--elegible:hover { outline: 1px solid var(--forest); outline-offset: -1px; }
-.grilla__celda--elegida { background: var(--forest); color: white; font-weight: 700; }
-.grilla__cierre { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-top: 1px solid var(--line); color: #b5beb8; font-size: 10px; }
-.grilla__cierre span { color: var(--muted); font-size: 11px; font-weight: 700; }
-.grilla--compacto .grilla__tabla { font-size: 11px; }
-.grilla--compacto .grilla__hora { padding: 6px; font-size: 10px; }
-.grilla--compacto .grilla__celda { padding: 6px 3px; }
-.grilla--compacto .grilla__celda--numerica .grilla__palabra { display: none; }
-.grilla--compacto .grilla__valor { font-weight: 700; font-size: 13px; }
-@media (max-width: 720px) {
-  .grilla__tabla { font-size: 11px; }
-  .grilla__encabezado { padding: 10px 4px; }
-  .grilla__encabezado strong { font-size: 12px; }
-  .grilla__hora { padding: 6px; font-size: 10px; }
-  .grilla__celda { padding: 6px 3px; }
-  .grilla__celda--numerica .grilla__palabra { display: none; }
-  .grilla__valor { font-weight: 700; font-size: 13px; }
-}
-</style>
