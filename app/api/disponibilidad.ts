@@ -1,6 +1,6 @@
 import { getApiRecursosDisponibilidadNotebooks, getApiRecursosDisponibilidadSalas } from '~/utils/openapi-gen'
 import type { GetApiRecursosDisponibilidadNotebooksResponses } from '~/utils/openapi-gen'
-import { aIsoConZona, esDiaHabil, finDelBloque, generarBloques } from '~/constants/horarios'
+import { aIsoConZona, finDelBloque, generarBloques } from '~/constants/horarios'
 import type { BloqueDisponibilidad, DisponibilidadDia, RecursoDisponibilidad } from '~/types/disponibilidad'
 
 type RecursoDelBack = GetApiRecursosDisponibilidadNotebooksResponses[200]['data'][number]
@@ -69,8 +69,6 @@ function filaDeNotebooks(inicios: string[], respuestas: RecursoEnVentana[][]): R
 }
 
 export async function disponibilidadDelDia(fecha: string): Promise<DisponibilidadDia> {
-  if (!esDiaHabil(fecha)) return { fecha, abierta: false, recursos: [] }
-
   const inicios = generarBloques()
   const salas = salasConSusBloques(inicios, await consultarCadaBloque(fecha, inicios, salasEntre))
   const notebooks = filaDeNotebooks(inicios, await consultarCadaBloque(fecha, inicios, notebooksEntre))
