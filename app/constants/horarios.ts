@@ -1,4 +1,5 @@
 export const BLOQUE_MINUTOS = 15
+export const ZONA_HORARIA = '-03:00'
 export const APERTURA_MINUTOS = 10 * 60
 export const CIERRE_MINUTOS = 22 * 60
 const DIAS_HABILES = [1, 2, 3, 4, 5]
@@ -51,6 +52,14 @@ export function sumarDias(fecha: string, dias: number) {
   const referencia = aFechaLocal(fecha)
   referencia.setDate(referencia.getDate() + dias)
   return aIso(referencia)
+}
+
+export function aIsoConZona(fecha: string, hora: string) {
+  return `${fecha}T${hora}:00${ZONA_HORARIA}`
+}
+
+export function finDelBloque(fecha: string, inicio: string) {
+  return aIsoConZona(fecha, minutosAHora(horaAMinutos(inicio) + BLOQUE_MINUTOS))
 }
 
 export function esDiaHabil(fecha: string) {

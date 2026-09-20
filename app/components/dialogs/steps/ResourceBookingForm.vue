@@ -5,10 +5,11 @@ import FiltroSalas from '~/components/disponibilidad/FiltroSalas.vue'
 import GrillaDisponibilidad from '~/components/disponibilidad/GrillaDisponibilidad.vue'
 import SelectorFecha from '~/components/disponibilidad/SelectorFecha.vue'
 import { ACCIONES, BOTON_PRIMARIO, BOTON_SUAVE, ERROR, FLECHA_BOTON, INTRO_TEXTO, INTRO_TITULO } from '~/constants/estilos'
-import { BLOQUE_MINUTOS, etiquetaDuracion, horaAMinutos, minutosAHora } from '~/constants/horarios'
+import { BLOQUE_MINUTOS, etiquetaDuracion, formatearFechaLarga, horaAMinutos, minutosAHora } from '~/constants/horarios'
+import type { ReservaConfirmada } from '~/api/reservas'
 import type { ResourceBooking } from '~/types'
 
-const props = defineProps<{ modelValue: ResourceBooking; completed?: boolean; error?: string }>()
+const props = defineProps<{ modelValue: ResourceBooking; completed?: boolean; error?: string; loading?: boolean; reserva?: ReservaConfirmada | null }>()
 const emit = defineEmits<{ 'update:modelValue': [value: ResourceBooking]; submit: []; back: [] }>()
 const { bloques, fecha, cargando, errorMessage, abierta, esHoy, salas, salaSeleccionada, recursosVisibles, cargar, irAFecha, moverDias, irAHoy, seleccionarSala, estadoDe, duracionesPosibles, notebooksEnVentana } = useDisponibilidad()
 const seleccion = ref<{ recursoId: number; inicio: string } | null>(null)
@@ -24,18 +25,25 @@ const TICK = 'flex cursor-pointer flex-row items-start gap-2.5 text-mini font-bo
 
 function elegir(recursoId: number, inicio: string) { seleccion.value = { recursoId, inicio }; duracion.value = duraciones.value[0] ?? 0 }
 function actualizarBooleano(campo: 'wantsComputer' | 'computerConditionsAccepted', valor: boolean) { emit('update:modelValue', { ...props.modelValue, [campo]: valor, ...(campo === 'wantsComputer' && !valor ? { computerConditionsAccepted: false } : {}) }) }
-function sincronizar() { emit('update:modelValue', { ...props.modelValue, resource: salaElegida.value?.nombre ?? '', date: fecha.value, startTime: seleccion.value?.inicio ?? '', endTime: fin.value }) }
+function sincronizar() { emit('update:modelValue', { ...props.modelValue, resource: salaElegida.value?.nombre ?? '', resourceId: salaElegida.value?.id ?? 0, date: fecha.value, startTime: seleccion.value?.inicio ?? '', endTime: fin.value }) }
 watch(fecha, () => { seleccion.value = null; duracion.value = 0 })
 watch([seleccion, duracion], sincronizar)
 watch(notebooksLibres, libres => { if (!libres && props.modelValue.wantsComputer) actualizarBooleano('wantsComputer', false) })
+watch(() => props.completed, confirmada => { if (confirmada) cargar() })
 onMounted(cargar)
 </script>
 
 <template>
   <div>
-    <div v-if="completed" class="mb-4.5 flex items-center gap-3 bg-success p-3 text-xs text-forest">
-      <strong>Reserva solicitada</strong>
-      <p class="mt-1 text-mini text-muted">Tu solicitud fue registrada correctamente.</p>
+    <div v-if="completed" class="flex flex-col gap-2 bg-success p-3.5 text-xs text-forest">
+      <strong class="text-tiny">Reserva confirmada</strong>
+      <dl class="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-mini">
+        <dt class="text-muted">Sala</dt><dd class="m-0 font-bold">{{ reserva?.sala }}</dd>
+        <dt class="text-muted">Día</dt><dd class="m-0 font-bold">{{ reserva ? formatearFechaLarga(reserva.fecha) : '' }}</dd>
+        <dt class="text-muted">Horario</dt><dd class="m-0 font-bold">{{ reserva?.inicio }} a {{ reserva?.fin }}</dd>
+        <template v-if="reserva?.notebook"><dt class="text-muted">Notebook</dt><dd class="m-0 font-bold">{{ reserva.notebook }}</dd></template>
+        <template v-if="reserva?.id"><dt class="text-muted">Código</dt><dd class="m-0 font-bold">#{{ reserva.id }}</dd></template>
+      </dl>
     </div>
 
     <div v-else class="flex flex-col gap-4.5">
@@ -84,7 +92,7 @@ onMounted(cargar)
 
       <div :class="ACCIONES">
         <button :class="BOTON_SUAVE" type="button" @click="emit('back')">← Volver</button>
-        <button :class="BOTON_PRIMARIO" :disabled="!listo || (modelValue.wantsComputer && !modelValue.computerConditionsAccepted)" type="button" @click="emit('submit')">Confirmar reserva <span :class="FLECHA_BOTON">→</span></button>
+        <button :class="BOTON_PRIMARIO" :disabled="loading || !listo || (modelValue.wantsComputer && !modelValue.computerConditionsAccepted)" type="button" @click="emit('submit')">{{ loading ? 'Confirmando…' : 'Confirmar reserva' }} <span :class="FLECHA_BOTON">→</span></button>
       </div>
     </div>
   </div>

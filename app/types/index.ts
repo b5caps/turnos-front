@@ -16,6 +16,7 @@ export interface ExternalRegistration {
 
 export interface ResourceBooking {
   resource: string
+  resourceId: number
   date: string
   startTime: string
   endTime: string

@@ -1,9 +1,12 @@
 import { computed, ref } from 'vue'
 import { BLOQUE_MINUTOS, generarBloques, hoyIso, horaAMinutos, sumarDias } from '~/constants/horarios'
+import { disponibilidadDelDia } from '~/api/disponibilidad'
+import { USAR_API } from '~/constants/api'
 import { disponibilidadDe } from '~/mocks/disponibilidad'
 import type { BloqueDisponibilidad, DisponibilidadDia, EstadoBloque, RecursoDisponibilidad } from '~/types/disponibilidad'
 
 function consultarDisponibilidad(fecha: string): Promise<DisponibilidadDia> {
+  if (USAR_API) return disponibilidadDelDia(fecha)
   return new Promise(resolve => window.setTimeout(() => resolve(disponibilidadDe(fecha)), 220))
 }
 

@@ -1,4 +1,6 @@
 import { computed, reactive, ref } from 'vue'
+import { crearReserva } from '~/api/reservas'
+import type { ReservaConfirmada } from '~/api/reservas'
 import type { DialogStep, ExternalRegistration, ResourceBooking, StudentCredentials, UserType } from '~/types'
 
 export function useGrebAuth() {
@@ -7,6 +9,7 @@ export function useGrebAuth() {
   const isSubmitting = ref(false)
   const errorMessage = ref('')
   const bookingCompleted = ref(false)
+  const reservaConfirmada = ref<ReservaConfirmada | null>(null)
   const isAuthenticated = ref(false)
   const authenticatedUser = ref<UserType | null>(null)
 
@@ -18,7 +21,7 @@ export function useGrebAuth() {
     phone: '',
     email: '',
   })
-  const booking = reactive<ResourceBooking>({ resource: '', date: '', startTime: '', endTime: '', wantsComputer: false, computerConditionsAccepted: false })
+  const booking = reactive<ResourceBooking>({ resource: '', resourceId: 0, date: '', startTime: '', endTime: '', wantsComputer: false, computerConditionsAccepted: false })
 
   function resetFlow() {
     step.value = 1
@@ -26,11 +29,12 @@ export function useGrebAuth() {
     isSubmitting.value = false
     errorMessage.value = ''
     bookingCompleted.value = false
+    reservaConfirmada.value = null
     isAuthenticated.value = false
     authenticatedUser.value = null
     Object.assign(student, { legajo: '', password: '' })
     Object.assign(external, { firstName: '', lastName: '', dni: '', phone: '', email: '' })
-    Object.assign(booking, { resource: '', date: '', startTime: '', endTime: '', wantsComputer: false, computerConditionsAccepted: false })
+    Object.assign(booking, { resource: '', resourceId: 0, date: '', startTime: '', endTime: '', wantsComputer: false, computerConditionsAccepted: false })
   }
 
   const stepLabel = computed(() => {
@@ -86,9 +90,9 @@ export function useGrebAuth() {
     }, 250)
   }
 
-  function submitBooking() {
+  async function submitBooking() {
     errorMessage.value = ''
-    if (!booking.resource || !booking.date || !booking.startTime || !booking.endTime) {
+    if (!booking.resourceId || !booking.date || !booking.startTime || !booking.endTime) {
       errorMessage.value = 'Completá el recurso, la fecha y el horario de la reserva.'
       return
     }
@@ -100,8 +104,23 @@ export function useGrebAuth() {
       errorMessage.value = 'Aceptá las condiciones de uso de la PC para confirmar la reserva.'
       return
     }
-    bookingCompleted.value = true
+    isSubmitting.value = true
+    try {
+      reservaConfirmada.value = await crearReserva({
+        fecha: booking.date,
+        inicio: booking.startTime,
+        fin: booking.endTime,
+        salaId: booking.resourceId,
+        salaNombre: booking.resource,
+        conNotebook: booking.wantsComputer,
+      })
+      bookingCompleted.value = true
+    } catch (fallo) {
+      errorMessage.value = fallo instanceof Error ? fallo.message : 'No pudimos confirmar la reserva.'
+    } finally {
+      isSubmitting.value = false
+    }
   }
 
-  return { step, userType, student, external, booking, isSubmitting, errorMessage, bookingCompleted, isAuthenticated, authenticatedUser, stepLabel, chooseUserType, goBack, submitAuth, submitBooking, resetFlow }
+  return { step, userType, student, external, booking, isSubmitting, errorMessage, bookingCompleted, reservaConfirmada, isAuthenticated, authenticatedUser, stepLabel, chooseUserType, goBack, submitAuth, submitBooking, resetFlow }
 }

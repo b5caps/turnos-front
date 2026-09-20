@@ -5,7 +5,7 @@ import ResourceBookingForm from '~/components/dialogs/steps/ResourceBookingForm.
 import StudentLoginForm from '~/components/dialogs/steps/StudentLoginForm.vue'
 import UserTypeStep from '~/components/dialogs/steps/UserTypeStep.vue'
 
-const { step, userType, student, external, booking, isSubmitting, errorMessage, bookingCompleted, stepLabel, chooseUserType, goBack, submitAuth, submitBooking, resetFlow } = useGrebAuth()
+const { step, userType, student, external, booking, isSubmitting, errorMessage, bookingCompleted, reservaConfirmada, stepLabel, chooseUserType, goBack, submitAuth, submitBooking, resetFlow } = useGrebAuth()
 const isBookingCompleted = computed(() => Boolean(bookingCompleted.value))
 const bookingError = computed(() => errorMessage.value || '')
 
@@ -67,7 +67,7 @@ resetFlow()
             <UserTypeStep v-if="step === 1" :selected="userType" @choose="chooseUserType" />
             <StudentLoginForm v-else-if="step === 2 && userType === 'student'" :error="errorMessage" :loading="isSubmitting" :model-value="student" @back="goBack" @login-success="handleAuthSuccess" @update:model-value="updateStudent" />
             <ExternalRegisterForm v-else-if="step === 2 && userType === 'external'" :error="errorMessage" :loading="isSubmitting" :model-value="external" @back="goBack" @register-success="handleAuthSuccess" @update:model-value="updateExternal" />
-            <ResourceBookingForm v-else-if="step === 3" :completed="isBookingCompleted" :error="bookingError" :model-value="booking" @back="goBack" @submit="submitBooking" @update:model-value="updateBooking" />
+            <ResourceBookingForm v-else-if="step === 3" :completed="isBookingCompleted" :error="bookingError" :loading="isSubmitting" :model-value="booking" :reserva="reservaConfirmada" @back="goBack" @submit="submitBooking" @update:model-value="updateBooking" />
           </div>
         </div>
       </div>
