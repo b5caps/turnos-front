@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Trebuchet MS', 'Segoe UI', sans-serif;
+  --font-sans: "Trebuchet MS", "Segoe UI", sans-serif;
   --font-serif: Georgia, serif;
 
   --breakpoint-tablet: 720px;
@@ -56,7 +56,13 @@
   --animate-rise: rise 0.55s ease both;
 
   @keyframes rise {
-    from { opacity: 0; transform: translateY(13px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(13px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
