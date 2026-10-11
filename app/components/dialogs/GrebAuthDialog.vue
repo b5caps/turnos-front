@@ -21,6 +21,8 @@ const {
   submitAuth,
   submitBooking,
   resetFlow,
+  isAuthenticated,
+  logout,
 } = useGrebAuth();
 const isBookingCompleted = computed(() => Boolean(bookingCompleted.value));
 const bookingError = computed(() => errorMessage.value || "");
@@ -41,7 +43,13 @@ function handleAuthSuccess() {
   submitAuth();
 }
 
-resetFlow();
+async function handleLogout() {
+  await logout();
+}
+
+if (!isAuthenticated.value) {
+  resetFlow();
+}
 </script>
 
 <template>
@@ -91,6 +99,15 @@ resetFlow();
             Gestor de Reservas y Espacios de Biblioteca
           </p>
         </div>
+        <button
+          v-if="isAuthenticated || step === 3"
+          type="button"
+          class="ml-auto cursor-pointer border-b border-mint text-xs font-bold text-forest hover:border-forest disabled:cursor-wait disabled:opacity-65"
+          :disabled="isSubmitting"
+          @click="handleLogout"
+        >
+          {{ isSubmitting ? "Cerrando sesión..." : "Cerrar sesión" }}
+        </button>
       </header>
 
       <div

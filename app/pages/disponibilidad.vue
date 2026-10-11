@@ -24,6 +24,8 @@ const {
   estadoDe,
 } = useDisponibilidad();
 
+const { isAuthenticated, isSubmitting, logout } = useGrebAuth();
+
 onMounted(cargar);
 </script>
 
@@ -74,7 +76,17 @@ onMounted(cargar);
             Consultá qué lugares y notebooks hay disponibles
           </p>
         </div>
+        <button
+          v-if="isAuthenticated"
+          type="button"
+          class="ml-auto cursor-pointer border-b border-mint text-xs font-bold text-forest hover:border-forest disabled:cursor-wait disabled:opacity-65"
+          :disabled="isSubmitting"
+          @click="logout"
+        >
+          {{ isSubmitting ? "Cerrando sesión..." : "Cerrar sesión" }}
+        </button>
         <NuxtLink
+          v-else
           class="ml-auto border-b border-mint text-xs font-bold text-forest no-underline hover:border-forest"
           to="/"
           >Ingresar</NuxtLink

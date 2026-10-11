@@ -1,4 +1,10 @@
 import { computed, reactive, ref } from "vue";
+import {
+  cerrarSesionApi,
+  guardarToken,
+  limpiarToken,
+  obtenerToken,
+} from "~/api/auth";
 import { crearReserva } from "~/api/reservas";
 import type { ReservaConfirmada } from "~/api/reservas";
 import type {
@@ -12,12 +18,22 @@ import type {
 export function useGrebAuth() {
   const step = ref<DialogStep>(1);
   const userType = ref<UserType | null>(null);
-  const isSubmitting = ref(false);
+  const isSubmitting = useState<boolean>("greb_is_submitting", () => false);
   const errorMessage = ref("");
   const bookingCompleted = ref(false);
   const reservaConfirmada = ref<ReservaConfirmada | null>(null);
-  const isAuthenticated = ref(false);
-  const authenticatedUser = ref<UserType | null>(null);
+  const isAuthenticated = useState<boolean>(
+    "greb_is_authenticated",
+    () => false,
+  );
+  const authenticatedUser = useState<UserType | null>(
+    "greb_auth_user",
+    () => null,
+  );
+
+  if (import.meta.client && obtenerToken()) {
+    isAuthenticated.value = true;
+  }
 
   const student = reactive<StudentCredentials>({ legajo: "", password: "" });
   const external = reactive<ExternalRegistration>({
@@ -126,8 +142,32 @@ export function useGrebAuth() {
       isSubmitting.value = false;
       isAuthenticated.value = true;
       authenticatedUser.value = userType.value;
+      if (!obtenerToken()) {
+        guardarToken("demo-auth-token");
+      }
       step.value = 3;
     }, 250);
+  }
+
+  async function logout() {
+    isSubmitting.value = true;
+    errorMessage.value = "";
+    try {
+      const token = obtenerToken();
+      if (token) {
+        await cerrarSesionApi(token);
+      }
+    } catch (fallo) {
+      errorMessage.value =
+        fallo instanceof Error
+          ? fallo.message
+          : "No pudimos cerrar la sesión en el servidor.";
+    } finally {
+      limpiarToken();
+      resetFlow();
+      isSubmitting.value = false;
+      await navigateTo("/");
+    }
   }
 
   async function submitBooking() {
@@ -191,5 +231,6 @@ export function useGrebAuth() {
     submitAuth,
     submitBooking,
     resetFlow,
+    logout,
   };
 }
