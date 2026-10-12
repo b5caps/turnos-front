@@ -32,6 +32,22 @@ export interface LogoutResponse {
   message: string;
 }
 
+export interface RegistroExternoData {
+  rol: "EXTERNO";
+  tipoDocumento: "DNI";
+  documento: string;
+  nombre: string;
+  apellido: string;
+  email: string;
+  telefono: string;
+  password: string;
+  localidad: string;
+  provincia: string;
+  organizacion: string;
+}
+
+export type RegistroResponse = LoginResponse;
+
 export function obtenerToken(): string | null {
   if (typeof window !== "undefined" && window.localStorage) {
     return localStorage.getItem(TOKEN_STORAGE_KEY);
@@ -76,6 +92,34 @@ export async function iniciarSesionApi(
   if (error || !data) {
     const errorMsg =
       (error as { message?: string })?.message || "Credenciales inválidas";
+    throw new ErrorApi(errorMsg, response?.status, error);
+  }
+
+  guardarToken(data.token);
+  return data;
+}
+
+export async function registrarApi(
+  datos: RegistroExternoData,
+): Promise<RegistroResponse> {
+  const config = client.getConfig();
+  if (!config.baseUrl) {
+    const apiBase =
+      useRuntimeConfig()?.public?.apiBase || "http://localhost:3000";
+    client.setConfig({ baseUrl: apiBase });
+  }
+
+  const { data, error, response } = await client.post<RegistroResponse>({
+    url: "/api/auth/registro",
+    body: datos,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (error || !data) {
+    const errorMsg =
+      (error as { message?: string })?.message || "Error al registrar usuario";
     throw new ErrorApi(errorMsg, response?.status, error);
   }
 

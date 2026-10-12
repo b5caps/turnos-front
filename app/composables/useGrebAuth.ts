@@ -4,6 +4,7 @@ import {
   iniciarSesionApi,
   limpiarToken,
   obtenerToken,
+  registrarApi,
 } from "~/api/auth";
 import { crearReserva } from "~/api/reservas";
 import type { ReservaConfirmada } from "~/api/reservas";
@@ -14,6 +15,15 @@ import type {
   StudentCredentials,
   UserType,
 } from "~/types";
+
+declare module "~/types" {
+  interface ExternalRegistration {
+    password?: string;
+    localidad?: string;
+    provincia?: string;
+    mode?: "login" | "register";
+  }
+}
 
 export function useGrebAuth() {
   const step = ref<DialogStep>(1);
@@ -42,6 +52,10 @@ export function useGrebAuth() {
     dni: "",
     phone: "",
     email: "",
+    password: "",
+    localidad: "",
+    provincia: "",
+    mode: "register",
   });
   const booking = reactive<ResourceBooking>({
     resource: "",
@@ -71,6 +85,10 @@ export function useGrebAuth() {
       dni: "",
       phone: "",
       email: "",
+      password: "",
+      localidad: "",
+      provincia: "",
+      mode: "register",
     });
     Object.assign(booking, {
       resource: "",
@@ -142,20 +160,36 @@ export function useGrebAuth() {
     }
 
     if (userType.value === "external") {
+      if (external.mode === "login") {
+        const cleanEmail = external.email.trim();
+        const cleanPassword = external.password;
+        if (!cleanEmail || !cleanPassword) {
+          errorMessage.value = "Por favor completá todos los campos.";
+          return;
+        }
+        await login(cleanEmail, cleanPassword);
+        return;
+      }
+
       if (
         !external.firstName.trim() ||
         !external.lastName.trim() ||
         !external.dni.trim() ||
         !external.phone.trim() ||
-        !external.email.trim()
+        !external.email.trim() ||
+        !external.password ||
+        !external.localidad?.trim() ||
+        !external.provincia?.trim()
       ) {
         errorMessage.value = "Completá todos los campos para continuar.";
         return;
       }
+
       if (!/^\S+@\S+\.\S+$/.test(external.email)) {
         errorMessage.value = "Ingresá un correo electrónico válido.";
         return;
       }
+
       if (
         !/^\d{7,15}$/.test(external.dni.trim()) ||
         !/^\+?[\d\s-]{7,20}$/.test(external.phone.trim())
@@ -164,8 +198,40 @@ export function useGrebAuth() {
         return;
       }
 
-      errorMessage.value =
-        "El registro de externos todavía no está disponible.";
+      if (external.password.length < 8) {
+        errorMessage.value = "La contraseña debe tener al menos 8 caracteres.";
+        return;
+      }
+
+      if (new TextEncoder().encode(external.password).length > 72) {
+        errorMessage.value = "La contraseña no puede superar 72 bytes";
+        return;
+      }
+
+      isSubmitting.value = true;
+      try {
+        await registrarApi({
+          rol: "EXTERNO",
+          tipoDocumento: "DNI",
+          documento: external.dni.trim(),
+          nombre: external.firstName.trim(),
+          apellido: external.lastName.trim(),
+          email: external.email.trim().toLowerCase(),
+          telefono: external.phone.trim(),
+          password: external.password,
+          localidad: external.localidad.trim(),
+          provincia: external.provincia.trim(),
+          organizacion: "Particular",
+        });
+        isAuthenticated.value = true;
+        authenticatedUser.value = "external";
+        step.value = 3;
+      } catch (fallo) {
+        errorMessage.value =
+          fallo instanceof Error ? fallo.message : "Error al registrar usuario";
+      } finally {
+        isSubmitting.value = false;
+      }
     }
   }
 

@@ -179,6 +179,7 @@ if (!isAuthenticated.value) {
               :model-value="external"
               @back="goBack"
               @register-success="handleAuthSuccess"
+              @login-success="handleAuthSuccess"
               @update:model-value="updateExternal"
             />
             <ResourceBookingForm
