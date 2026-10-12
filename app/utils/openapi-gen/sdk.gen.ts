@@ -15,6 +15,18 @@ import type {
   GetApiRecursosDisponibilidadSalasData,
   GetApiRecursosDisponibilidadSalasErrors,
   GetApiRecursosDisponibilidadSalasResponses,
+  PatchApiReservasByIdCancelarData,
+  PatchApiReservasByIdCancelarErrors,
+  PatchApiReservasByIdCancelarResponses,
+  PostApiAuthLoginData,
+  PostApiAuthLoginErrors,
+  PostApiAuthLoginResponses,
+  PostApiAuthLogoutData,
+  PostApiAuthLogoutErrors,
+  PostApiAuthLogoutResponses,
+  PostApiAuthRegistroData,
+  PostApiAuthRegistroErrors,
+  PostApiAuthRegistroResponses,
   PostApiReservasData,
   PostApiReservasErrors,
   PostApiReservasResponses,
@@ -95,4 +107,98 @@ export const postApiReservas = <ThrowOnError extends boolean = false>(
       "Content-Type": "application/json",
       ...options?.headers,
     },
+  });
+
+/**
+ * Cancelar una reserva
+ *
+ * Cancela una reserva existente si el usuario es dueño de la misma o Administrador, siempre que no haya finalizado ni realizado check-in.
+ */
+export const patchApiReservasByIdCancelar = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PatchApiReservasByIdCancelarData, ThrowOnError>,
+): RequestResult<
+  PatchApiReservasByIdCancelarResponses,
+  PatchApiReservasByIdCancelarErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).patch<
+    PatchApiReservasByIdCancelarResponses,
+    PatchApiReservasByIdCancelarErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/reservas/{id}/cancelar",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Registrar usuario UTN o externo
+ */
+export const postApiAuthRegistro = <ThrowOnError extends boolean = false>(
+  options?: Options<PostApiAuthRegistroData, ThrowOnError>,
+): RequestResult<
+  PostApiAuthRegistroResponses,
+  PostApiAuthRegistroErrors,
+  ThrowOnError
+> =>
+  (options?.client ?? client).post<
+    PostApiAuthRegistroResponses,
+    PostApiAuthRegistroErrors,
+    ThrowOnError
+  >({
+    url: "/api/auth/registro",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  });
+
+/**
+ * Iniciar sesión con email y contraseña
+ */
+export const postApiAuthLogin = <ThrowOnError extends boolean = false>(
+  options?: Options<PostApiAuthLoginData, ThrowOnError>,
+): RequestResult<
+  PostApiAuthLoginResponses,
+  PostApiAuthLoginErrors,
+  ThrowOnError
+> =>
+  (options?.client ?? client).post<
+    PostApiAuthLoginResponses,
+    PostApiAuthLoginErrors,
+    ThrowOnError
+  >({
+    url: "/api/auth/login",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  });
+
+/**
+ * Cerrar sesión e invalidar el token actual
+ */
+export const postApiAuthLogout = <ThrowOnError extends boolean = false>(
+  options?: Options<PostApiAuthLogoutData, ThrowOnError>,
+): RequestResult<
+  PostApiAuthLogoutResponses,
+  PostApiAuthLogoutErrors,
+  ThrowOnError
+> =>
+  (options?.client ?? client).post<
+    PostApiAuthLogoutResponses,
+    PostApiAuthLogoutErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/auth/logout",
+    ...options,
   });

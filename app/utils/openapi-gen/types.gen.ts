@@ -8,8 +8,10 @@ export type GetApiRecursosDisponibilidadSalasData = {
   body?: never;
   path?: never;
   query: {
-    fechaHoraInicio: string;
-    fechaHoraFin: string;
+    /**
+     * Fecha a consultar (YYYY-MM-DD)
+     */
+    fecha: string;
   };
   url: "/api/recursos/disponibilidad/salas";
 };
@@ -26,17 +28,25 @@ export type GetApiRecursosDisponibilidadSalasResponses = {
    * OK
    */
   200: {
-    data: Array<{
+    horarioEstablecimiento: {
+      minutosApertura: number;
+      minutosCierre: number;
+    };
+    recursos: Array<{
       id: number;
       nombre: string;
       capacidad: number;
-      ocupacion: number;
-      cuposLibres: number;
-      disponible: boolean;
-      motivoNoDisponible: "fuera_de_horario" | "bloqueado" | "sin_cupos" | null;
       horariosReservados: Array<{
         horaInicio: string;
         horaFin: string;
+      }>;
+      bloques: Array<{
+        horaInicio: string;
+        horaFin: string;
+        ocupacion: number;
+        disponible: boolean;
+        motivoNoDisponible:
+          "fuera_de_horario" | "bloqueado" | "sin_cupos" | null;
       }>;
       ubicacion: string;
     }>;
@@ -50,8 +60,10 @@ export type GetApiRecursosDisponibilidadNotebooksData = {
   body?: never;
   path?: never;
   query: {
-    fechaHoraInicio: string;
-    fechaHoraFin: string;
+    /**
+     * Fecha a consultar (YYYY-MM-DD)
+     */
+    fecha: string;
   };
   url: "/api/recursos/disponibilidad/notebooks";
 };
@@ -68,17 +80,25 @@ export type GetApiRecursosDisponibilidadNotebooksResponses = {
    * OK
    */
   200: {
-    data: Array<{
+    horarioEstablecimiento: {
+      minutosApertura: number;
+      minutosCierre: number;
+    };
+    recursos: Array<{
       id: number;
       nombre: string;
       capacidad: number;
-      ocupacion: number;
-      cuposLibres: number;
-      disponible: boolean;
-      motivoNoDisponible: "fuera_de_horario" | "bloqueado" | "sin_cupos" | null;
       horariosReservados: Array<{
         horaInicio: string;
         horaFin: string;
+      }>;
+      bloques: Array<{
+        horaInicio: string;
+        horaFin: string;
+        ocupacion: number;
+        disponible: boolean;
+        motivoNoDisponible:
+          "fuera_de_horario" | "bloqueado" | "sin_cupos" | null;
       }>;
       numeroSerie: string;
       marca: string;
@@ -136,3 +156,234 @@ export type PostApiReservasResponses = {
 
 export type PostApiReservasResponse =
   PostApiReservasResponses[keyof PostApiReservasResponses];
+
+export type PatchApiReservasByIdCancelarData = {
+  body?: {
+    /**
+     * Motivo o justificación de la cancelación
+     */
+    motivoCancelacion?: string;
+  };
+  path: {
+    /**
+     * ID de la reserva a cancelar
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/api/reservas/{id}/cancelar";
+};
+
+export type PatchApiReservasByIdCancelarErrors = {
+  /**
+   * Regla de negocio no cumplida (ej. ya finalizó o ya realizó check-in)
+   */
+  400: {
+    message: string;
+  };
+  /**
+   * No autenticado o token no provisto/inválido
+   */
+  401: {
+    message: string;
+  };
+  /**
+   * No autorizado para cancelar esta reserva
+   */
+  403: {
+    message: string;
+  };
+  /**
+   * Reserva no encontrada
+   */
+  404: {
+    message: string;
+  };
+  /**
+   * La reserva ya se encuentra cancelada
+   */
+  409: {
+    message: string;
+  };
+};
+
+export type PatchApiReservasByIdCancelarError =
+  PatchApiReservasByIdCancelarErrors[keyof PatchApiReservasByIdCancelarErrors];
+
+export type PatchApiReservasByIdCancelarResponses = {
+  /**
+   * Reserva cancelada exitosamente
+   */
+  200: {
+    data: {
+      id: number;
+      usuarioId: number;
+      fechaHoraInicio: string;
+      fechaHoraFin: string;
+      fechaLimiteCheckIn: string;
+      fechaHoraCancelacion: string | null;
+      motivoCancelacion: string | null;
+      observacion: string | null;
+      recursos: Array<{
+        recursoId: number;
+        recurso: {
+          id: number;
+          nombre: string;
+        };
+      }>;
+    };
+  };
+};
+
+export type PatchApiReservasByIdCancelarResponse =
+  PatchApiReservasByIdCancelarResponses[keyof PatchApiReservasByIdCancelarResponses];
+
+export type PostApiAuthRegistroData = {
+  body?:
+    | {
+        tipoDocumento: "DNI" | "CUIL";
+        documento: string;
+        nombre: string;
+        apellido: string;
+        email: string;
+        telefono: string;
+        password: string;
+        rol: "UTN";
+        legajo: string;
+        docente: boolean;
+        carrera?: string;
+      }
+    | {
+        tipoDocumento: "DNI" | "CUIL";
+        documento: string;
+        nombre: string;
+        apellido: string;
+        email: string;
+        telefono: string;
+        password: string;
+        rol: "EXTERNO";
+        localidad: string;
+        provincia: string;
+        organizacion: string;
+      };
+  path?: never;
+  query?: never;
+  url: "/api/auth/registro";
+};
+
+export type PostApiAuthRegistroErrors = {
+  /**
+   * Datos inválidos
+   */
+  400: {
+    message: string;
+  };
+  /**
+   * Email, documento o legajo ya registrado
+   */
+  409: {
+    message: string;
+  };
+};
+
+export type PostApiAuthRegistroError =
+  PostApiAuthRegistroErrors[keyof PostApiAuthRegistroErrors];
+
+export type PostApiAuthRegistroResponses = {
+  /**
+   * Usuario registrado
+   */
+  201: {
+    usuario: {
+      id: number;
+      rol: "UTN" | "EXTERNO" | "ADMIN";
+      nombre: string;
+      apellido: string;
+      email: string;
+    };
+    token: string;
+    expiresIn: number;
+  };
+};
+
+export type PostApiAuthRegistroResponse =
+  PostApiAuthRegistroResponses[keyof PostApiAuthRegistroResponses];
+
+export type PostApiAuthLoginData = {
+  body?: {
+    username: string;
+    password: string;
+  };
+  path?: never;
+  query?: never;
+  url: "/api/auth/login";
+};
+
+export type PostApiAuthLoginErrors = {
+  /**
+   * Datos inválidos
+   */
+  400: {
+    message: string;
+  };
+  /**
+   * Credenciales inválidas
+   */
+  401: {
+    message: string;
+  };
+};
+
+export type PostApiAuthLoginError =
+  PostApiAuthLoginErrors[keyof PostApiAuthLoginErrors];
+
+export type PostApiAuthLoginResponses = {
+  /**
+   * Sesión iniciada
+   */
+  200: {
+    usuario: {
+      id: number;
+      rol: "UTN" | "EXTERNO" | "ADMIN";
+      nombre: string;
+      apellido: string;
+      email: string;
+    };
+    token: string;
+    expiresIn: number;
+  };
+};
+
+export type PostApiAuthLoginResponse =
+  PostApiAuthLoginResponses[keyof PostApiAuthLoginResponses];
+
+export type PostApiAuthLogoutData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/auth/logout";
+};
+
+export type PostApiAuthLogoutErrors = {
+  /**
+   * Token no proporcionado, inválido o revocado
+   */
+  401: {
+    message: string;
+  };
+};
+
+export type PostApiAuthLogoutError =
+  PostApiAuthLogoutErrors[keyof PostApiAuthLogoutErrors];
+
+export type PostApiAuthLogoutResponses = {
+  /**
+   * Sesión cerrada exitosamente
+   */
+  200: {
+    message: string;
+  };
+};
+
+export type PostApiAuthLogoutResponse =
+  PostApiAuthLogoutResponses[keyof PostApiAuthLogoutResponses];

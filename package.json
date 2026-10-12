@@ -8,7 +8,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "openapi": "openapi-ts -i http://localhost:3000/doc -p @hey-api/client-ofetch -o app/utils/openapi"
+    "openapi": "openapi-ts -i http://localhost:3000/doc -p @hey-api/client-ofetch -o app/utils/openapi-gen"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
