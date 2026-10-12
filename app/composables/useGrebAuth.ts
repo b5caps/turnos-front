@@ -6,6 +6,7 @@ import {
   obtenerToken,
   registrarApi,
 } from "~/api/auth";
+import type { UsuarioAutenticado } from "~/api/auth";
 import { crearReserva } from "~/api/reservas";
 import type { ReservaConfirmada } from "~/api/reservas";
 import type {
@@ -35,6 +36,10 @@ export function useGrebAuth() {
   const isAuthenticated = useState<boolean>(
     "greb_is_authenticated",
     () => false,
+  );
+  const usuario = useState<UsuarioAutenticado | null>(
+    "greb_usuario",
+    () => null,
   );
   const authenticatedUser = useState<UserType | null>(
     "greb_auth_user",
@@ -78,6 +83,7 @@ export function useGrebAuth() {
     reservaConfirmada.value = null;
     isAuthenticated.value = false;
     authenticatedUser.value = null;
+    usuario.value = null;
     Object.assign(student, { legajo: "", password: "" });
     Object.assign(external, {
       firstName: "",
@@ -139,6 +145,7 @@ export function useGrebAuth() {
     isSubmitting.value = true;
     try {
       const data = await iniciarSesionApi(identificador, pass);
+      usuario.value = data.usuario;
       isAuthenticated.value = true;
       authenticatedUser.value = (
         data.usuario?.rol?.toUpperCase() === "UTN" ? "student" : "external"
@@ -210,7 +217,7 @@ export function useGrebAuth() {
 
       isSubmitting.value = true;
       try {
-        await registrarApi({
+        const registrado = await registrarApi({
           rol: "EXTERNO",
           tipoDocumento: "DNI",
           documento: external.dni.trim(),
@@ -223,6 +230,7 @@ export function useGrebAuth() {
           provincia: external.provincia.trim(),
           organizacion: "Particular",
         });
+        usuario.value = registrado.usuario;
         isAuthenticated.value = true;
         authenticatedUser.value = "external";
         step.value = 3;
@@ -274,9 +282,15 @@ export function useGrebAuth() {
       return;
     }
 
+    if (!usuario.value) {
+      errorMessage.value = "Volvé a iniciar sesión para confirmar la reserva.";
+      return;
+    }
+
     isSubmitting.value = true;
     try {
       const confirmada = await crearReserva({
+        usuarioId: usuario.value.id,
         fecha: booking.date,
         inicio: booking.startTime,
         fin: booking.endTime,
@@ -316,6 +330,7 @@ export function useGrebAuth() {
     resetFlow,
     isAuthenticated,
     authenticatedUser,
+    usuario,
     logout,
   };
 }

@@ -2,12 +2,7 @@ import {
   getApiRecursosDisponibilidadNotebooks,
   getApiRecursosDisponibilidadSalas,
 } from "~/utils/openapi-gen";
-import type { GetApiRecursosDisponibilidadNotebooksResponses } from "~/utils/openapi-gen";
-import {
-  aIsoConZona,
-  finDelBloque,
-  generarBloques,
-} from "~/constants/horarios";
+import type { GetApiRecursosDisponibilidadSalasResponses } from "~/utils/openapi-gen";
 import type {
   BloqueDisponibilidad,
   DisponibilidadDia,
@@ -15,133 +10,115 @@ import type {
 } from "~/types/disponibilidad";
 
 type RecursoDelBack =
-  GetApiRecursosDisponibilidadNotebooksResponses[200]["data"][number];
-type RecursoEnVentana = Pick<
+  GetApiRecursosDisponibilidadSalasResponses[200]["recursos"][number];
+type RecursoDelDia = Pick<
   RecursoDelBack,
-  | "id"
-  | "nombre"
-  | "capacidad"
-  | "cuposLibres"
-  | "disponible"
-  | "motivoNoDisponible"
+  "id" | "nombre" | "capacidad" | "bloques"
 >;
-type Consulta = (desde: string, hasta: string) => Promise<RecursoEnVentana[]>;
 
-const POR_TANDA = 6;
 const ID_NOTEBOOKS = -1;
 
-export const salasEntre: Consulta = async (desde, hasta) => {
+async function salasDelDia(fecha: string): Promise<RecursoDelDia[]> {
   const { data, error } = await getApiRecursosDisponibilidadSalas({
-    query: { fechaHoraInicio: desde, fechaHoraFin: hasta },
+    query: { fecha },
   });
   if (error)
     throw new Error("No pudimos consultar la disponibilidad de las salas");
-  return data?.data ?? [];
-};
+  return data?.recursos ?? [];
+}
 
-export const notebooksEntre: Consulta = async (desde, hasta) => {
+async function notebooksDelDia(fecha: string): Promise<RecursoDelDia[]> {
   const { data, error } = await getApiRecursosDisponibilidadNotebooks({
-    query: { fechaHoraInicio: desde, fechaHoraFin: hasta },
+    query: { fecha },
   });
   if (error)
     throw new Error("No pudimos consultar la disponibilidad de las notebooks");
-  return data?.data ?? [];
-};
-
-async function consultarCadaBloque(
-  fecha: string,
-  inicios: string[],
-  consulta: Consulta,
-) {
-  const respuestas: RecursoEnVentana[][] = [];
-  for (let desde = 0; desde < inicios.length; desde += POR_TANDA) {
-    const tanda = inicios.slice(desde, desde + POR_TANDA);
-    respuestas.push(
-      ...(await Promise.all(
-        tanda.map((inicio) =>
-          consulta(aIsoConZona(fecha, inicio), finDelBloque(fecha, inicio)),
-        ),
-      )),
-    );
-  }
-  return respuestas;
+  return data?.recursos ?? [];
 }
 
-function salasConSusBloques(
-  inicios: string[],
-  respuestas: RecursoEnVentana[][],
-): RecursoDisponibilidad[] {
-  const salas = new Map<number, RecursoDisponibilidad>();
-
-  respuestas.forEach((enElBloque, indice) => {
-    for (const sala of enElBloque) {
-      if (!salas.has(sala.id)) {
-        salas.set(sala.id, {
-          id: sala.id,
-          nombre: sala.nombre,
-          tipo: "SALA",
-          capacidad: sala.capacidad,
-          bloques: [],
-        });
-      }
-      salas.get(sala.id)!.bloques.push({
-        inicio: inicios[indice]!,
-        cuposLibres: sala.cuposLibres,
-        disponible: sala.disponible,
-        motivoNoDisponible: sala.motivoNoDisponible,
-      });
-    }
-  });
-
-  return [...salas.values()];
+function aSala(recurso: RecursoDelDia): RecursoDisponibilidad {
+  return {
+    id: recurso.id,
+    nombre: recurso.nombre,
+    tipo: "SALA",
+    capacidad: recurso.capacidad,
+    bloques: recurso.bloques.map((bloque) => ({
+      inicio: bloque.horaInicio,
+      cuposLibres: Math.max(0, recurso.capacidad - bloque.ocupacion),
+      disponible: bloque.disponible,
+      motivoNoDisponible: bloque.motivoNoDisponible,
+    })),
+  };
 }
 
-function filaDeNotebooks(
+function aFilaDeNotebooks(
+  notebooks: RecursoDelDia[],
   inicios: string[],
-  respuestas: RecursoEnVentana[][],
 ): RecursoDisponibilidad | null {
-  const total = new Set(respuestas.flat().map((notebook) => notebook.id)).size;
-  if (!total) return null;
+  if (!notebooks.length) return null;
 
-  const bloques: BloqueDisponibilidad[] = respuestas.map(
-    (enElBloque, indice) => {
-      const libres = enElBloque.filter(
-        (notebook) => notebook.disponible,
-      ).length;
-      return {
-        inicio: inicios[indice]!,
-        cuposLibres: libres,
-        disponible: libres > 0,
-        motivoNoDisponible: libres > 0 ? null : "sin_cupos",
-      };
-    },
-  );
+  const bloques: BloqueDisponibilidad[] = inicios.map((inicio, indice) => {
+    const libres = notebooks.filter(
+      (notebook) => notebook.bloques[indice]?.disponible,
+    ).length;
+    return {
+      inicio,
+      cuposLibres: libres,
+      disponible: libres > 0,
+      motivoNoDisponible: libres
+        ? null
+        : (notebooks[0]?.bloques[indice]?.motivoNoDisponible ?? "sin_cupos"),
+    };
+  });
 
   return {
     id: ID_NOTEBOOKS,
     nombre: "Notebooks",
     tipo: "NOTEBOOK",
-    capacidad: total,
+    capacidad: notebooks.length,
     bloques,
   };
+}
+
+export async function notebookLibreEn(
+  fecha: string,
+  inicio: string,
+  fin: string,
+) {
+  const notebooks = await notebooksDelDia(fecha);
+  return (
+    notebooks.find((notebook) =>
+      notebook.bloques
+        .filter(
+          (bloque) => bloque.horaInicio >= inicio && bloque.horaInicio < fin,
+        )
+        .every((bloque) => bloque.disponible),
+    ) ?? null
+  );
 }
 
 export async function disponibilidadDelDia(
   fecha: string,
 ): Promise<DisponibilidadDia> {
-  const inicios = generarBloques();
-  const salas = salasConSusBloques(
-    inicios,
-    await consultarCadaBloque(fecha, inicios, salasEntre),
+  const [salas, notebooks] = await Promise.all([
+    salasDelDia(fecha),
+    notebooksDelDia(fecha),
+  ]);
+
+  const inicios = (salas[0] ?? notebooks[0])?.bloques.map(
+    (bloque) => bloque.horaInicio,
   );
-  const notebooks = filaDeNotebooks(
-    inicios,
-    await consultarCadaBloque(fecha, inicios, notebooksEntre),
-  );
+
+  if (!inicios?.length)
+    return { fecha, abierta: false, bloques: [], recursos: [] };
+
+  const fila = aFilaDeNotebooks(notebooks, inicios);
+  const recursos = salas.map(aSala);
 
   return {
     fecha,
     abierta: true,
-    recursos: notebooks ? [...salas, notebooks] : salas,
+    bloques: inicios,
+    recursos: fila ? [...recursos, fila] : recursos,
   };
 }

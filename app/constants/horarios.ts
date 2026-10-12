@@ -48,18 +48,6 @@ export function horaAMinutos(hora: string) {
   return Number(horas) * 60 + Number(minutos);
 }
 
-export function generarBloques() {
-  const bloques: string[] = [];
-  for (
-    let minutos = APERTURA_MINUTOS;
-    minutos < CIERRE_MINUTOS;
-    minutos += BLOQUE_MINUTOS
-  ) {
-    bloques.push(minutosAHora(minutos));
-  }
-  return bloques;
-}
-
 function aFechaLocal(fecha: string) {
   const [anio, mes, dia] = fecha.split("-").map(Number);
   return new Date(anio!, mes! - 1, dia!);
@@ -83,13 +71,6 @@ export function sumarDias(fecha: string, dias: number) {
 
 export function aIsoConZona(fecha: string, hora: string) {
   return `${fecha}T${hora}:00${ZONA_HORARIA}`;
-}
-
-export function finDelBloque(fecha: string, inicio: string) {
-  return aIsoConZona(
-    fecha,
-    minutosAHora(horaAMinutos(inicio) + BLOQUE_MINUTOS),
-  );
 }
 
 export function esDiaHabil(fecha: string) {

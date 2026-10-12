@@ -1,10 +1,10 @@
 import { postApiReservas } from "~/utils/openapi-gen";
-import { notebooksEntre } from "~/api/disponibilidad";
+import { notebookLibreEn } from "~/api/disponibilidad";
 import { USAR_API } from "~/constants/api";
-import { USUARIO_DEMO } from "~/constants/auth";
 import { aIsoConZona } from "~/constants/horarios";
 
 export interface NuevaReserva {
+  usuarioId: number;
   fecha: string;
   inicio: string;
   fin: string;
@@ -20,17 +20,6 @@ export interface ReservaConfirmada {
   inicio: string;
   fin: string;
   notebook: string | null;
-}
-
-async function notebookLibre(desde: string, hasta: string) {
-  const libres = (await notebooksEntre(desde, hasta)).filter(
-    (notebook) => notebook.disponible,
-  );
-  if (!libres.length)
-    throw new Error(
-      "Ya no quedan notebooks para ese horario. Probá sin notebook o elegí otro horario.",
-    );
-  return libres[0]!;
 }
 
 export async function crearReserva(
@@ -51,15 +40,20 @@ export async function crearReserva(
   }
 
   const notebook = reserva.conNotebook
-    ? await notebookLibre(desde, hasta)
+    ? await notebookLibreEn(reserva.fecha, reserva.inicio, reserva.fin)
     : null;
+  if (reserva.conNotebook && !notebook)
+    throw new Error(
+      "Ya no quedan notebooks para ese horario. Probá sin notebook o elegí otro horario.",
+    );
+
   const recursoIds = notebook
     ? [reserva.salaId, notebook.id]
     : [reserva.salaId];
 
   const { data, error } = await postApiReservas({
     body: {
-      usuarioId: USUARIO_DEMO,
+      usuarioId: reserva.usuarioId,
       recursoIds,
       fechaHoraInicio: desde,
       fechaHoraFin: hasta,
