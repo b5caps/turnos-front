@@ -3,20 +3,47 @@ import {
   getApiRecursosDisponibilidadSalas,
 } from "~/utils/openapi-gen";
 import type { GetApiRecursosDisponibilidadSalasResponses } from "~/utils/openapi-gen";
+import { partesDeIso } from "~/constants/horarios";
 import type {
   BloqueDisponibilidad,
   DisponibilidadDia,
+  MotivoNoDisponible,
   RecursoDisponibilidad,
 } from "~/types/disponibilidad";
 
 type RecursoDelBack =
   GetApiRecursosDisponibilidadSalasResponses[200]["recursos"][number];
-type RecursoDelDia = Pick<
-  RecursoDelBack,
-  "id" | "nombre" | "capacidad" | "bloques"
->;
+
+interface BloqueDelDia {
+  inicio: string;
+  ocupacion: number;
+  disponible: boolean;
+  motivoNoDisponible: MotivoNoDisponible | null;
+}
+
+interface RecursoDelDia {
+  id: number;
+  nombre: string;
+  capacidad: number;
+  bloques: BloqueDelDia[];
+}
 
 const ID_NOTEBOOKS = -1;
+
+// El back manda horaInicio como fecha y hora completa en ISO, no como "HH:MM".
+function normalizar(recursos: RecursoDelBack[]): RecursoDelDia[] {
+  return recursos.map((recurso) => ({
+    id: recurso.id,
+    nombre: recurso.nombre,
+    capacidad: recurso.capacidad,
+    bloques: recurso.bloques.map((bloque) => ({
+      inicio: partesDeIso(bloque.horaInicio).hora,
+      ocupacion: bloque.ocupacion,
+      disponible: bloque.disponible,
+      motivoNoDisponible: bloque.motivoNoDisponible,
+    })),
+  }));
+}
 
 async function salasDelDia(fecha: string): Promise<RecursoDelDia[]> {
   const { data, error } = await getApiRecursosDisponibilidadSalas({
@@ -24,7 +51,7 @@ async function salasDelDia(fecha: string): Promise<RecursoDelDia[]> {
   });
   if (error)
     throw new Error("No pudimos consultar la disponibilidad de las salas");
-  return data?.recursos ?? [];
+  return normalizar(data?.recursos ?? []);
 }
 
 async function notebooksDelDia(fecha: string): Promise<RecursoDelDia[]> {
@@ -33,7 +60,7 @@ async function notebooksDelDia(fecha: string): Promise<RecursoDelDia[]> {
   });
   if (error)
     throw new Error("No pudimos consultar la disponibilidad de las notebooks");
-  return data?.recursos ?? [];
+  return normalizar(data?.recursos ?? []);
 }
 
 function aSala(recurso: RecursoDelDia): RecursoDisponibilidad {
@@ -43,7 +70,7 @@ function aSala(recurso: RecursoDelDia): RecursoDisponibilidad {
     tipo: "SALA",
     capacidad: recurso.capacidad,
     bloques: recurso.bloques.map((bloque) => ({
-      inicio: bloque.horaInicio,
+      inicio: bloque.inicio,
       cuposLibres: Math.max(0, recurso.capacidad - bloque.ocupacion),
       disponible: bloque.disponible,
       motivoNoDisponible: bloque.motivoNoDisponible,
@@ -89,9 +116,7 @@ export async function notebookLibreEn(
   return (
     notebooks.find((notebook) =>
       notebook.bloques
-        .filter(
-          (bloque) => bloque.horaInicio >= inicio && bloque.horaInicio < fin,
-        )
+        .filter((bloque) => bloque.inicio >= inicio && bloque.inicio < fin)
         .every((bloque) => bloque.disponible),
     ) ?? null
   );
@@ -106,7 +131,7 @@ export async function disponibilidadDelDia(
   ]);
 
   const inicios = (salas[0] ?? notebooks[0])?.bloques.map(
-    (bloque) => bloque.horaInicio,
+    (bloque) => bloque.inicio,
   );
 
   if (!inicios?.length)

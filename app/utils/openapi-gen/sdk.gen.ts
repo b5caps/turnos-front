@@ -15,6 +15,9 @@ import type {
   GetApiRecursosDisponibilidadSalasData,
   GetApiRecursosDisponibilidadSalasErrors,
   GetApiRecursosDisponibilidadSalasResponses,
+  GetApiReservasData,
+  GetApiReservasErrors,
+  GetApiReservasResponses,
   PatchApiReservasByIdCancelarData,
   PatchApiReservasByIdCancelarErrors,
   PatchApiReservasByIdCancelarResponses,
@@ -85,6 +88,24 @@ export const getApiRecursosDisponibilidadNotebooks = <
     GetApiRecursosDisponibilidadNotebooksErrors,
     ThrowOnError
   >({ url: "/api/recursos/disponibilidad/notebooks", ...options });
+
+/**
+ * Listar reservas
+ *
+ * Lista las reservas del usuario autenticado. Los administradores pueden ver todas las reservas y filtrar por usuarioId.
+ */
+export const getApiReservas = <ThrowOnError extends boolean = false>(
+  options?: Options<GetApiReservasData, ThrowOnError>,
+): RequestResult<GetApiReservasResponses, GetApiReservasErrors, ThrowOnError> =>
+  (options?.client ?? client).get<
+    GetApiReservasResponses,
+    GetApiReservasErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/reservas",
+    ...options,
+  });
 
 /**
  * Reservar un espacio y sus recursos

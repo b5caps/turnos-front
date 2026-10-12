@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
+import { ETIQUETA_HORARIO } from "~/constants/horarios";
 import EstadoDisponibilidad from "~/components/disponibilidad/EstadoDisponibilidad.vue";
 import FiltroSalas from "~/components/disponibilidad/FiltroSalas.vue";
 import GrillaDisponibilidad from "~/components/disponibilidad/GrillaDisponibilidad.vue";
@@ -76,21 +77,29 @@ onMounted(cargar);
             Consultá qué lugares y notebooks hay disponibles
           </p>
         </div>
-        <button
-          v-if="isAuthenticated"
-          type="button"
-          class="ml-auto cursor-pointer border-b border-mint text-xs font-bold text-forest hover:border-forest disabled:cursor-wait disabled:opacity-65"
-          :disabled="isSubmitting"
-          @click="logout"
-        >
-          {{ isSubmitting ? "Cerrando sesión..." : "Cerrar sesión" }}
-        </button>
-        <NuxtLink
-          v-else
-          class="ml-auto border-b border-mint text-xs font-bold text-forest no-underline hover:border-forest"
-          to="/"
-          >Ingresar</NuxtLink
-        >
+        <div class="ml-auto flex items-center gap-5 max-tablet:gap-3">
+          <template v-if="isAuthenticated">
+            <NuxtLink
+              class="border-b border-mint text-xs font-bold text-forest no-underline hover:border-forest"
+              to="/mis-reservas"
+              >Mis reservas</NuxtLink
+            >
+            <button
+              type="button"
+              class="cursor-pointer border-b border-mint text-xs font-bold text-forest hover:border-forest disabled:cursor-wait disabled:opacity-65"
+              :disabled="isSubmitting"
+              @click="logout"
+            >
+              {{ isSubmitting ? "Cerrando sesión..." : "Cerrar sesión" }}
+            </button>
+          </template>
+          <NuxtLink
+            v-else
+            class="border-b border-mint text-xs font-bold text-forest no-underline hover:border-forest"
+            to="/"
+            >Ingresar</NuxtLink
+          >
+        </div>
       </header>
 
       <div
@@ -131,7 +140,7 @@ onMounted(cargar);
       <footer
         class="flex justify-between border-t border-line px-10 py-4 text-micro text-footer max-tablet:px-5 max-tablet:py-3.5"
       >
-        <span>GREB · Biblioteca</span><span>Lunes a viernes, 10 a 22</span>
+        <span>GREB · Biblioteca</span><span>{{ ETIQUETA_HORARIO }}</span>
       </footer>
     </section>
   </main>

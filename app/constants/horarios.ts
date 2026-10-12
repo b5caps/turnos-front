@@ -1,6 +1,6 @@
 export const BLOQUE_MINUTOS = 15;
 export const ZONA_HORARIA = "-03:00";
-export const APERTURA_MINUTOS = 10 * 60;
+export const APERTURA_MINUTOS = 8 * 60;
 export const CIERRE_MINUTOS = 22 * 60;
 const DIAS_HABILES = [1, 2, 3, 4, 5];
 
@@ -34,6 +34,10 @@ export function etiquetaDuracion(minutos: number) {
   const resto = minutos % 60;
   return resto ? `${horas}h${resto}m` : `${horas}h`;
 }
+
+export const ETIQUETA_HORARIO = `Lunes a viernes, ${minutosAHora(
+  APERTURA_MINUTOS,
+).slice(0, 2)} a ${minutosAHora(CIERRE_MINUTOS).slice(0, 2)}`;
 
 export function minutosAHora(minutos: number) {
   const horas = Math.floor(minutos / 60)
@@ -80,4 +84,15 @@ export function esDiaHabil(fecha: string) {
 export function formatearFechaLarga(fecha: string) {
   const referencia = aFechaLocal(fecha);
   return `${NOMBRES_DIA[referencia.getDay()]} ${referencia.getDate()} de ${NOMBRES_MES[referencia.getMonth()]}`;
+}
+
+const MINUTOS_ZONA =
+  horaAMinutos(ZONA_HORARIA.slice(1)) * (ZONA_HORARIA.startsWith("-") ? -1 : 1);
+
+export function partesDeIso(iso: string) {
+  const enZona = new Date(new Date(iso).getTime() + MINUTOS_ZONA * 60000);
+  return {
+    fecha: enZona.toISOString().slice(0, 10),
+    hora: enZona.toISOString().slice(11, 16),
+  };
 }

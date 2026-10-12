@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { BOTON_SUAVE } from "~/constants/estilos";
+import { AVISO, BOTON_SUAVE } from "~/constants/estilos";
+import { ETIQUETA_HORARIO } from "~/constants/horarios";
 
 defineProps<{
   cargando: boolean;
@@ -8,9 +9,6 @@ defineProps<{
   sinBloques?: boolean;
 }>();
 const emit = defineEmits<{ reintentar: [] }>();
-
-const AVISO =
-  "m-0 border border-line bg-paper px-5 py-9 text-center text-tiny text-muted";
 </script>
 
 <template>
@@ -25,7 +23,7 @@ const AVISO =
     </button>
   </div>
   <p v-else-if="!abierta" :class="AVISO">
-    La biblioteca no abre este día. Atiende de lunes a viernes, de 10 a 22.
+    La biblioteca no abre este día. {{ ETIQUETA_HORARIO }}.
   </p>
   <p v-else-if="sinBloques" :class="AVISO">
     Por hoy la biblioteca ya cerró. Mirá los próximos días.

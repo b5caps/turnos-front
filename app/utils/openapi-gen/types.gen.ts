@@ -110,6 +110,70 @@ export type GetApiRecursosDisponibilidadNotebooksResponses = {
 export type GetApiRecursosDisponibilidadNotebooksResponse =
   GetApiRecursosDisponibilidadNotebooksResponses[keyof GetApiRecursosDisponibilidadNotebooksResponses];
 
+export type GetApiReservasData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Filtrar por usuario (solo disponible para administradores)
+     */
+    usuarioId?: number;
+    /**
+     * Filtrar por estado de la reserva (activas, canceladas, finalizadas, todas)
+     */
+    estado?: "todas" | "activas" | "canceladas" | "finalizadas";
+  };
+  url: "/api/reservas";
+};
+
+export type GetApiReservasErrors = {
+  /**
+   * No autenticado o token no provisto/inválido
+   */
+  401: {
+    message: string;
+  };
+};
+
+export type GetApiReservasError =
+  GetApiReservasErrors[keyof GetApiReservasErrors];
+
+export type GetApiReservasResponses = {
+  /**
+   * Lista de reservas obtenida exitosamente
+   */
+  200: {
+    data: Array<{
+      id: number;
+      usuarioId: number;
+      usuario?: {
+        id: number;
+        nombre: string;
+        apellido: string;
+        email: string;
+      };
+      fechaHoraInicio: string;
+      fechaHoraFin: string;
+      fechaLimiteCheckIn: string;
+      fechaHoraCancelacion: string | null;
+      motivoCancelacion: string | null;
+      fechaHoraCheckIn?: string | null;
+      fechaHoraCheckOut?: string | null;
+      observacion: string | null;
+      recursos: Array<{
+        recursoId: number;
+        recurso: {
+          id: number;
+          nombre: string;
+        };
+      }>;
+    }>;
+  };
+};
+
+export type GetApiReservasResponse =
+  GetApiReservasResponses[keyof GetApiReservasResponses];
+
 export type PostApiReservasData = {
   body?: {
     usuarioId: number;
@@ -218,11 +282,19 @@ export type PatchApiReservasByIdCancelarResponses = {
     data: {
       id: number;
       usuarioId: number;
+      usuario?: {
+        id: number;
+        nombre: string;
+        apellido: string;
+        email: string;
+      };
       fechaHoraInicio: string;
       fechaHoraFin: string;
       fechaLimiteCheckIn: string;
       fechaHoraCancelacion: string | null;
       motivoCancelacion: string | null;
+      fechaHoraCheckIn?: string | null;
+      fechaHoraCheckOut?: string | null;
       observacion: string | null;
       recursos: Array<{
         recursoId: number;
