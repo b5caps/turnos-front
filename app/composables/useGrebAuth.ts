@@ -1,7 +1,7 @@
 import { computed, reactive, ref } from "vue";
 import {
   cerrarSesionApi,
-  guardarToken,
+  iniciarSesionApi,
   limpiarToken,
   obtenerToken,
 } from "~/api/auth";
@@ -31,8 +31,8 @@ export function useGrebAuth() {
     () => null,
   );
 
-  if (import.meta.client && obtenerToken()) {
-    isAuthenticated.value = true;
+  if (import.meta.client) {
+    isAuthenticated.value = Boolean(obtenerToken());
   }
 
   const student = reactive<StudentCredentials>({ legajo: "", password: "" });
@@ -53,11 +53,13 @@ export function useGrebAuth() {
     computerConditionsAccepted: false,
   });
 
-  function resetFlow() {
+  function resetFlow(limpiarError = true) {
     step.value = 1;
     userType.value = null;
     isSubmitting.value = false;
-    errorMessage.value = "";
+    if (limpiarError) {
+      errorMessage.value = "";
+    }
     bookingCompleted.value = false;
     reservaConfirmada.value = null;
     isAuthenticated.value = false;
@@ -106,47 +108,65 @@ export function useGrebAuth() {
     if (step.value === 2) step.value = 1;
   }
 
-  function submitAuth() {
+  async function login(legajoOEmail?: string, password?: string) {
     errorMessage.value = "";
-    if (userType.value === "student") {
-      if (!student.legajo.trim() || !student.password) {
-        errorMessage.value = "Completá tu legajo y contraseña para continuar.";
-        return;
-      }
-      if (student.legajo !== "16868" || student.password !== "catalina") {
-        errorMessage.value = "Legajo o contraseña de Sysacad incorrectos";
-        return;
-      }
-    } else if (
-      !external.firstName.trim() ||
-      !external.lastName.trim() ||
-      !external.dni.trim() ||
-      !external.phone.trim() ||
-      !external.email.trim()
-    ) {
-      errorMessage.value = "Completá todos los campos para continuar.";
-      return;
-    } else if (!/^\S+@\S+\.\S+$/.test(external.email)) {
-      errorMessage.value = "Ingresá un correo electrónico válido.";
-      return;
-    } else if (
-      !/^\d{7,15}$/.test(external.dni.trim()) ||
-      !/^\+?[\d\s-]{7,20}$/.test(external.phone.trim())
-    ) {
-      errorMessage.value = "Ingresá un DNI y un celular válidos.";
+    const identificador = (legajoOEmail ?? student.legajo).trim();
+    const pass = password ?? student.password;
+
+    if (!identificador || !pass) {
+      errorMessage.value = "Por favor completá todos los campos.";
       return;
     }
 
     isSubmitting.value = true;
-    window.setTimeout(() => {
-      isSubmitting.value = false;
+    try {
+      const data = await iniciarSesionApi(identificador, pass);
       isAuthenticated.value = true;
-      authenticatedUser.value = userType.value;
-      if (!obtenerToken()) {
-        guardarToken("demo-auth-token");
-      }
+      authenticatedUser.value = (
+        data.usuario?.rol?.toUpperCase() === "UTN" ? "student" : "external"
+      ) as UserType;
       step.value = 3;
-    }, 250);
+    } catch (fallo) {
+      errorMessage.value =
+        fallo instanceof Error ? fallo.message : "Credenciales inválidas";
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  async function submitAuth() {
+    errorMessage.value = "";
+    if (userType.value === "student") {
+      await login(student.legajo, student.password);
+      return;
+    }
+
+    if (userType.value === "external") {
+      if (
+        !external.firstName.trim() ||
+        !external.lastName.trim() ||
+        !external.dni.trim() ||
+        !external.phone.trim() ||
+        !external.email.trim()
+      ) {
+        errorMessage.value = "Completá todos los campos para continuar.";
+        return;
+      }
+      if (!/^\S+@\S+\.\S+$/.test(external.email)) {
+        errorMessage.value = "Ingresá un correo electrónico válido.";
+        return;
+      }
+      if (
+        !/^\d{7,15}$/.test(external.dni.trim()) ||
+        !/^\+?[\d\s-]{7,20}$/.test(external.phone.trim())
+      ) {
+        errorMessage.value = "Ingresá un DNI y un celular válidos.";
+        return;
+      }
+
+      errorMessage.value =
+        "El registro de externos todavía no está disponible.";
+    }
   }
 
   async function logout() {
@@ -164,7 +184,7 @@ export function useGrebAuth() {
           : "No pudimos cerrar la sesión en el servidor.";
     } finally {
       limpiarToken();
-      resetFlow();
+      resetFlow(false);
       isSubmitting.value = false;
       await navigateTo("/");
     }
@@ -178,23 +198,19 @@ export function useGrebAuth() {
       !booking.startTime ||
       !booking.endTime
     ) {
-      errorMessage.value =
-        "Completá el recurso, la fecha y el horario de la reserva.";
+      errorMessage.value = "Completá los datos requeridos para reservar.";
       return;
     }
-    if (booking.endTime <= booking.startTime) {
-      errorMessage.value =
-        "La hora de fin debe ser posterior a la hora de inicio.";
-      return;
-    }
+
     if (booking.wantsComputer && !booking.computerConditionsAccepted) {
       errorMessage.value =
-        "Aceptá las condiciones de uso de la PC para confirmar la reserva.";
+        "Debés aceptar las condiciones de uso de la notebook.";
       return;
     }
+
     isSubmitting.value = true;
     try {
-      reservaConfirmada.value = await crearReserva({
+      const confirmada = await crearReserva({
         fecha: booking.date,
         inicio: booking.startTime,
         fin: booking.endTime,
@@ -202,6 +218,8 @@ export function useGrebAuth() {
         salaNombre: booking.resource,
         conNotebook: booking.wantsComputer,
       });
+
+      reservaConfirmada.value = confirmada;
       bookingCompleted.value = true;
     } catch (fallo) {
       errorMessage.value =
@@ -223,14 +241,15 @@ export function useGrebAuth() {
     errorMessage,
     bookingCompleted,
     reservaConfirmada,
-    isAuthenticated,
-    authenticatedUser,
     stepLabel,
     chooseUserType,
     goBack,
+    login,
     submitAuth,
     submitBooking,
     resetFlow,
+    isAuthenticated,
+    authenticatedUser,
     logout,
   };
 }
