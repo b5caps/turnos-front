@@ -1,9 +1,11 @@
-import { computed, reactive, ref } from "vue";
+import { computed, getCurrentInstance, onMounted, reactive, ref } from "vue";
 import {
   cerrarSesionApi,
   iniciarSesionApi,
   limpiarToken,
+  limpiarUsuarioRol,
   obtenerToken,
+  obtenerUsuarioRol,
   registrarApi,
 } from "~/api/auth";
 import type { UsuarioAutenticado } from "~/api/auth";
@@ -46,8 +48,42 @@ export function useGrebAuth() {
     () => null,
   );
 
+  function restaurarSesion() {
+    const token = obtenerToken();
+    if (token) {
+      isAuthenticated.value = true;
+      step.value = 3;
+      const rol = obtenerUsuarioRol();
+      if (rol) {
+        authenticatedUser.value = rol;
+        userType.value = rol;
+      }
+      if (!usuario.value) {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          const id = Number(payload.sub);
+          if (id) {
+            usuario.value = {
+              id,
+              rol: payload.rol,
+              nombre: "",
+              apellido: "",
+              email: "",
+            };
+          }
+        } catch {
+          // Si el token no tiene payload decodificable, continuar sin bloquear
+        }
+      }
+    }
+  }
+
   if (import.meta.client) {
-    isAuthenticated.value = Boolean(obtenerToken());
+    if (getCurrentInstance()) {
+      onMounted(restaurarSesion);
+    } else {
+      restaurarSesion();
+    }
   }
 
   const student = reactive<StudentCredentials>({ legajo: "", password: "" });
@@ -258,6 +294,7 @@ export function useGrebAuth() {
           : "No pudimos cerrar la sesión en el servidor.";
     } finally {
       limpiarToken();
+      limpiarUsuarioRol();
       resetFlow(false);
       isSubmitting.value = false;
       await navigateTo("/");

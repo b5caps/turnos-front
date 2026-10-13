@@ -1,6 +1,8 @@
 import { client } from "~/utils/openapi-gen/client.gen";
+import type { UserType } from "~/types";
 
 export const TOKEN_STORAGE_KEY = "token";
+export const ROL_STORAGE_KEY = "usuarioRol";
 
 export class ErrorApi extends Error {
   status?: number;
@@ -67,6 +69,25 @@ export function limpiarToken(): void {
   }
 }
 
+export function obtenerUsuarioRol(): UserType | null {
+  if (typeof window !== "undefined" && window.localStorage) {
+    return localStorage.getItem(ROL_STORAGE_KEY) as UserType | null;
+  }
+  return null;
+}
+
+export function guardarUsuarioRol(rol: UserType): void {
+  if (typeof window !== "undefined" && window.localStorage) {
+    localStorage.setItem(ROL_STORAGE_KEY, rol);
+  }
+}
+
+export function limpiarUsuarioRol(): void {
+  if (typeof window !== "undefined" && window.localStorage) {
+    localStorage.removeItem(ROL_STORAGE_KEY);
+  }
+}
+
 export async function iniciarSesionApi(
   legajoOEmail: string,
   password: string,
@@ -96,6 +117,9 @@ export async function iniciarSesionApi(
   }
 
   guardarToken(data.token);
+  const rolLogin: UserType =
+    data.usuario?.rol?.toUpperCase() === "UTN" ? "student" : "external";
+  guardarUsuarioRol(rolLogin);
   return data;
 }
 
@@ -124,6 +148,9 @@ export async function registrarApi(
   }
 
   guardarToken(data.token);
+  const rolRegistro: UserType =
+    data.usuario?.rol?.toUpperCase() === "UTN" ? "student" : "external";
+  guardarUsuarioRol(rolRegistro);
   return data;
 }
 
@@ -152,6 +179,7 @@ export async function cerrarSesionApi(
 
   if (response?.status === 401) {
     limpiarToken();
+    limpiarUsuarioRol();
     const errorMsg =
       (error as { message?: string })?.message ||
       "Token no proporcionado, inválido o revocado";

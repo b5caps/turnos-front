@@ -50,11 +50,6 @@ function handleSubmit() {
     return;
   }
 
-  if (cleanLegajo !== "16868" || cleanPassword !== "catalina") {
-    localError.value = "Legajo o contraseña de Sysacad incorrectos.";
-    return;
-  }
-
   update("legajo", cleanLegajo);
   update("password", cleanPassword);
   emit("login-success", { legajo: cleanLegajo, password: cleanPassword });
