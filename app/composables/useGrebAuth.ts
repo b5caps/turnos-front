@@ -149,6 +149,7 @@ export function useGrebAuth() {
       return userType.value === "student"
         ? "Acceso de estudiante"
         : "Registro externo";
+    if (step.value === 3) return "Menú";
     return "Reserva de recurso";
   });
 
@@ -160,12 +161,19 @@ export function useGrebAuth() {
 
   function goBack() {
     errorMessage.value = "";
-    if (step.value === 3) {
+    if (step.value === 4) {
       bookingCompleted.value = false;
-      step.value = 2;
+      step.value = 3;
       return;
     }
     if (step.value === 2) step.value = 1;
+  }
+
+  function irAReservar() {
+    errorMessage.value = "";
+    bookingCompleted.value = false;
+    reservaConfirmada.value = null;
+    step.value = 4;
   }
 
   async function login(legajoOEmail?: string, password?: string) {
@@ -361,6 +369,7 @@ export function useGrebAuth() {
     stepLabel,
     chooseUserType,
     goBack,
+    irAReservar,
     login,
     submitAuth,
     submitBooking,

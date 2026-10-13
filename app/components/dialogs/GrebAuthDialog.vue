@@ -3,6 +3,7 @@ import { computed } from "vue";
 import ExternalRegisterForm from "~/components/dialogs/steps/ExternalRegisterForm.vue";
 import ResourceBookingForm from "~/components/dialogs/steps/ResourceBookingForm.vue";
 import StudentLoginForm from "~/components/dialogs/steps/StudentLoginForm.vue";
+import MenuStep from "~/components/dialogs/steps/MenuStep.vue";
 import UserTypeStep from "~/components/dialogs/steps/UserTypeStep.vue";
 
 const {
@@ -18,6 +19,7 @@ const {
   stepLabel,
   chooseUserType,
   goBack,
+  irAReservar,
   submitAuth,
   submitBooking,
   resetFlow,
@@ -100,7 +102,7 @@ if (!isAuthenticated.value) {
           </p>
         </div>
         <button
-          v-if="isAuthenticated || step === 3"
+          v-if="isAuthenticated || step >= 3"
           type="button"
           class="ml-auto cursor-pointer border-b border-mint text-xs font-bold text-forest hover:border-forest disabled:cursor-wait disabled:opacity-65"
           :disabled="isSubmitting"
@@ -112,13 +114,13 @@ if (!isAuthenticated.value) {
 
       <div
         :class="
-          step === 3
+          step === 4
             ? 'block'
             : 'grid min-h-128 grid-cols-[37%_63%] max-tablet:block'
         "
       >
         <aside
-          v-if="step !== 3"
+          v-if="step !== 4"
           class="relative flex flex-col justify-between overflow-hidden bg-forest px-10 pt-14 pb-9 text-white after:absolute after:-right-[145px] after:-bottom-[90px] after:size-[260px] after:rounded-full after:border after:border-white/15 after:content-[''] max-tablet:min-h-40 max-tablet:px-6 max-tablet:py-6"
         >
           <div>
@@ -148,12 +150,12 @@ if (!isAuthenticated.value) {
                 >0{{ step }}</strong
               >{{ stepLabel }}</span
             >
-            <span class="text-mini text-faint">Paso {{ step }} de 3</span>
+            <span class="text-mini text-faint">Paso {{ step }} de 4</span>
           </div>
           <div class="mt-2 mb-9 h-0.75 overflow-hidden bg-track">
             <span
               class="block h-full bg-coral transition-[width] duration-400 ease-in-out"
-              :style="{ width: `${(step / 3) * 100}%` }"
+              :style="{ width: `${(step / 4) * 100}%` }"
             ></span>
           </div>
 
@@ -182,8 +184,9 @@ if (!isAuthenticated.value) {
               @login-success="handleAuthSuccess"
               @update:model-value="updateExternal"
             />
+            <MenuStep v-else-if="step === 3" @reservar="irAReservar" />
             <ResourceBookingForm
-              v-else-if="step === 3"
+              v-else-if="step === 4"
               :completed="isBookingCompleted"
               :error="bookingError"
               :loading="isSubmitting"
