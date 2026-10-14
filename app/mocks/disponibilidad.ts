@@ -138,7 +138,8 @@ function construirBloques(
 }
 
 export function disponibilidadDe(fecha: string): DisponibilidadDia {
-  if (!esDiaHabil(fecha)) return { fecha, abierta: false, recursos: [] };
+  if (!esDiaHabil(fecha))
+    return { fecha, abierta: false, bloques: [], recursos: [] };
 
   const semilla = semillaDe(fecha);
   const recursos: RecursoDisponibilidad[] = PERFILES.map((perfil) => ({
@@ -149,5 +150,10 @@ export function disponibilidadDe(fecha: string): DisponibilidadDia {
     bloques: construirBloques(perfil, semilla),
   }));
 
-  return { fecha, abierta: true, recursos };
+  return {
+    fecha,
+    abierta: true,
+    bloques: recursos[0]?.bloques.map((bloque) => bloque.inicio) ?? [],
+    recursos,
+  };
 }

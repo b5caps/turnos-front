@@ -10,6 +10,8 @@ export const ETIQUETA =
 export const CAMPO =
   "w-full border border-line bg-white px-3 py-3 text-xs font-normal text-ink outline-none transition focus:border-forest focus:shadow-focus";
 export const ERROR = "mt-3.5 text-mini text-danger";
+export const AVISO =
+  "m-0 border border-line bg-paper px-5 py-9 text-center text-tiny text-muted";
 export const ACCIONES = "mt-7 flex items-center justify-between";
 
 export const BOTON =

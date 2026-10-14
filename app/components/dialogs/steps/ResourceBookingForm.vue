@@ -153,6 +153,11 @@ onMounted(cargar);
           <dd class="m-0 font-bold">#{{ reserva.id }}</dd></template
         >
       </dl>
+      <NuxtLink
+        class="self-start border-b border-forest/30 text-mini font-bold text-forest no-underline hover:border-forest"
+        to="/mis-reservas"
+        >Ver mis reservas</NuxtLink
+      >
     </div>
 
     <div v-else class="flex flex-col gap-4.5">

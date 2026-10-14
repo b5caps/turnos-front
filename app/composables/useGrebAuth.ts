@@ -1,4 +1,14 @@
-import { computed, reactive, ref } from "vue";
+import { computed, getCurrentInstance, onMounted, reactive, ref } from "vue";
+import {
+  cerrarSesionApi,
+  iniciarSesionApi,
+  limpiarToken,
+  limpiarUsuarioRol,
+  obtenerToken,
+  obtenerUsuarioRol,
+  registrarApi,
+} from "~/api/auth";
+import type { UsuarioAutenticado } from "~/api/auth";
 import { crearReserva } from "~/api/reservas";
 import type { ReservaConfirmada } from "~/api/reservas";
 import type {
@@ -9,15 +19,72 @@ import type {
   UserType,
 } from "~/types";
 
+declare module "~/types" {
+  interface ExternalRegistration {
+    password?: string;
+    localidad?: string;
+    provincia?: string;
+    mode?: "login" | "register";
+  }
+}
+
 export function useGrebAuth() {
   const step = ref<DialogStep>(1);
   const userType = ref<UserType | null>(null);
-  const isSubmitting = ref(false);
+  const isSubmitting = useState<boolean>("greb_is_submitting", () => false);
   const errorMessage = ref("");
   const bookingCompleted = ref(false);
   const reservaConfirmada = ref<ReservaConfirmada | null>(null);
-  const isAuthenticated = ref(false);
-  const authenticatedUser = ref<UserType | null>(null);
+  const isAuthenticated = useState<boolean>(
+    "greb_is_authenticated",
+    () => false,
+  );
+  const usuario = useState<UsuarioAutenticado | null>(
+    "greb_usuario",
+    () => null,
+  );
+  const authenticatedUser = useState<UserType | null>(
+    "greb_auth_user",
+    () => null,
+  );
+
+  function restaurarSesion() {
+    const token = obtenerToken();
+    if (token) {
+      isAuthenticated.value = true;
+      step.value = 3;
+      const rol = obtenerUsuarioRol();
+      if (rol) {
+        authenticatedUser.value = rol;
+        userType.value = rol;
+      }
+      if (!usuario.value) {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          const id = Number(payload.sub);
+          if (id) {
+            usuario.value = {
+              id,
+              rol: payload.rol,
+              nombre: "",
+              apellido: "",
+              email: "",
+            };
+          }
+        } catch {
+          // Si el token no tiene payload decodificable, continuar sin bloquear
+        }
+      }
+    }
+  }
+
+  if (import.meta.client) {
+    if (getCurrentInstance()) {
+      onMounted(restaurarSesion);
+    } else {
+      restaurarSesion();
+    }
+  }
 
   const student = reactive<StudentCredentials>({ legajo: "", password: "" });
   const external = reactive<ExternalRegistration>({
@@ -26,6 +93,10 @@ export function useGrebAuth() {
     dni: "",
     phone: "",
     email: "",
+    password: "",
+    localidad: "",
+    provincia: "",
+    mode: "register",
   });
   const booking = reactive<ResourceBooking>({
     resource: "",
@@ -37,15 +108,18 @@ export function useGrebAuth() {
     computerConditionsAccepted: false,
   });
 
-  function resetFlow() {
+  function resetFlow(limpiarError = true) {
     step.value = 1;
     userType.value = null;
     isSubmitting.value = false;
-    errorMessage.value = "";
+    if (limpiarError) {
+      errorMessage.value = "";
+    }
     bookingCompleted.value = false;
     reservaConfirmada.value = null;
     isAuthenticated.value = false;
     authenticatedUser.value = null;
+    usuario.value = null;
     Object.assign(student, { legajo: "", password: "" });
     Object.assign(external, {
       firstName: "",
@@ -53,6 +127,10 @@ export function useGrebAuth() {
       dni: "",
       phone: "",
       email: "",
+      password: "",
+      localidad: "",
+      provincia: "",
+      mode: "register",
     });
     Object.assign(booking, {
       resource: "",
@@ -71,6 +149,7 @@ export function useGrebAuth() {
       return userType.value === "student"
         ? "Acceso de estudiante"
         : "Registro externo";
+    if (step.value === 3) return "Menú";
     return "Reserva de recurso";
   });
 
@@ -82,52 +161,152 @@ export function useGrebAuth() {
 
   function goBack() {
     errorMessage.value = "";
-    if (step.value === 3) {
+    if (step.value === 4) {
       bookingCompleted.value = false;
-      step.value = 2;
+      step.value = 3;
       return;
     }
     if (step.value === 2) step.value = 1;
   }
 
-  function submitAuth() {
+  function irAReservar() {
     errorMessage.value = "";
-    if (userType.value === "student") {
-      if (!student.legajo.trim() || !student.password) {
-        errorMessage.value = "Completá tu legajo y contraseña para continuar.";
-        return;
-      }
-      if (student.legajo !== "16868" || student.password !== "catalina") {
-        errorMessage.value = "Legajo o contraseña de Sysacad incorrectos";
-        return;
-      }
-    } else if (
-      !external.firstName.trim() ||
-      !external.lastName.trim() ||
-      !external.dni.trim() ||
-      !external.phone.trim() ||
-      !external.email.trim()
-    ) {
-      errorMessage.value = "Completá todos los campos para continuar.";
-      return;
-    } else if (!/^\S+@\S+\.\S+$/.test(external.email)) {
-      errorMessage.value = "Ingresá un correo electrónico válido.";
-      return;
-    } else if (
-      !/^\d{7,15}$/.test(external.dni.trim()) ||
-      !/^\+?[\d\s-]{7,20}$/.test(external.phone.trim())
-    ) {
-      errorMessage.value = "Ingresá un DNI y un celular válidos.";
+    bookingCompleted.value = false;
+    reservaConfirmada.value = null;
+    step.value = 4;
+  }
+
+  async function login(legajoOEmail?: string, password?: string) {
+    errorMessage.value = "";
+    const identificador = (legajoOEmail ?? student.legajo).trim();
+    const pass = password ?? student.password;
+
+    if (!identificador || !pass) {
+      errorMessage.value = "Por favor completá todos los campos.";
       return;
     }
 
     isSubmitting.value = true;
-    window.setTimeout(() => {
-      isSubmitting.value = false;
+    try {
+      const data = await iniciarSesionApi(identificador, pass);
+      usuario.value = data.usuario;
       isAuthenticated.value = true;
-      authenticatedUser.value = userType.value;
+      authenticatedUser.value = (
+        data.usuario?.rol?.toUpperCase() === "UTN" ? "student" : "external"
+      ) as UserType;
       step.value = 3;
-    }, 250);
+    } catch (fallo) {
+      errorMessage.value =
+        fallo instanceof Error ? fallo.message : "Credenciales inválidas";
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  async function submitAuth() {
+    errorMessage.value = "";
+    if (userType.value === "student") {
+      await login(student.legajo, student.password);
+      return;
+    }
+
+    if (userType.value === "external") {
+      if (external.mode === "login") {
+        const cleanEmail = external.email.trim();
+        const cleanPassword = external.password;
+        if (!cleanEmail || !cleanPassword) {
+          errorMessage.value = "Por favor completá todos los campos.";
+          return;
+        }
+        await login(cleanEmail, cleanPassword);
+        return;
+      }
+
+      if (
+        !external.firstName.trim() ||
+        !external.lastName.trim() ||
+        !external.dni.trim() ||
+        !external.phone.trim() ||
+        !external.email.trim() ||
+        !external.password ||
+        !external.localidad?.trim() ||
+        !external.provincia?.trim()
+      ) {
+        errorMessage.value = "Completá todos los campos para continuar.";
+        return;
+      }
+
+      if (!/^\S+@\S+\.\S+$/.test(external.email)) {
+        errorMessage.value = "Ingresá un correo electrónico válido.";
+        return;
+      }
+
+      if (
+        !/^\d{7,15}$/.test(external.dni.trim()) ||
+        !/^\+?[\d\s-]{7,20}$/.test(external.phone.trim())
+      ) {
+        errorMessage.value = "Ingresá un DNI y un celular válidos.";
+        return;
+      }
+
+      if (external.password.length < 8) {
+        errorMessage.value = "La contraseña debe tener al menos 8 caracteres.";
+        return;
+      }
+
+      if (new TextEncoder().encode(external.password).length > 72) {
+        errorMessage.value = "La contraseña no puede superar 72 bytes";
+        return;
+      }
+
+      isSubmitting.value = true;
+      try {
+        const registrado = await registrarApi({
+          rol: "EXTERNO",
+          tipoDocumento: "DNI",
+          documento: external.dni.trim(),
+          nombre: external.firstName.trim(),
+          apellido: external.lastName.trim(),
+          email: external.email.trim().toLowerCase(),
+          telefono: external.phone.trim(),
+          password: external.password,
+          localidad: external.localidad.trim(),
+          provincia: external.provincia.trim(),
+          organizacion: "Particular",
+        });
+        usuario.value = registrado.usuario;
+        isAuthenticated.value = true;
+        authenticatedUser.value = "external";
+        step.value = 3;
+      } catch (fallo) {
+        errorMessage.value =
+          fallo instanceof Error ? fallo.message : "Error al registrar usuario";
+      } finally {
+        isSubmitting.value = false;
+      }
+    }
+  }
+
+  async function logout() {
+    isSubmitting.value = true;
+    errorMessage.value = "";
+    try {
+      const token = obtenerToken();
+      if (token) {
+        await cerrarSesionApi(token);
+      }
+    } catch (fallo) {
+      errorMessage.value =
+        fallo instanceof Error
+          ? fallo.message
+          : "No pudimos cerrar la sesión en el servidor.";
+    } finally {
+      limpiarToken();
+      limpiarUsuarioRol();
+      resetFlow(false);
+      isSubmitting.value = false;
+      await navigateTo("/");
+    }
   }
 
   async function submitBooking() {
@@ -138,23 +317,25 @@ export function useGrebAuth() {
       !booking.startTime ||
       !booking.endTime
     ) {
-      errorMessage.value =
-        "Completá el recurso, la fecha y el horario de la reserva.";
+      errorMessage.value = "Completá los datos requeridos para reservar.";
       return;
     }
-    if (booking.endTime <= booking.startTime) {
-      errorMessage.value =
-        "La hora de fin debe ser posterior a la hora de inicio.";
-      return;
-    }
+
     if (booking.wantsComputer && !booking.computerConditionsAccepted) {
       errorMessage.value =
-        "Aceptá las condiciones de uso de la PC para confirmar la reserva.";
+        "Debés aceptar las condiciones de uso de la notebook.";
       return;
     }
+
+    if (!usuario.value) {
+      errorMessage.value = "Volvé a iniciar sesión para confirmar la reserva.";
+      return;
+    }
+
     isSubmitting.value = true;
     try {
-      reservaConfirmada.value = await crearReserva({
+      const confirmada = await crearReserva({
+        usuarioId: usuario.value.id,
         fecha: booking.date,
         inicio: booking.startTime,
         fin: booking.endTime,
@@ -162,6 +343,8 @@ export function useGrebAuth() {
         salaNombre: booking.resource,
         conNotebook: booking.wantsComputer,
       });
+
+      reservaConfirmada.value = confirmada;
       bookingCompleted.value = true;
     } catch (fallo) {
       errorMessage.value =
@@ -183,13 +366,17 @@ export function useGrebAuth() {
     errorMessage,
     bookingCompleted,
     reservaConfirmada,
-    isAuthenticated,
-    authenticatedUser,
     stepLabel,
     chooseUserType,
     goBack,
+    irAReservar,
+    login,
     submitAuth,
     submitBooking,
     resetFlow,
+    isAuthenticated,
+    authenticatedUser,
+    usuario,
+    logout,
   };
 }
