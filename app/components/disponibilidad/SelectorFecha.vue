@@ -16,14 +16,14 @@ const emit = defineEmits<{
 const etiqueta = computed(() => formatearFechaLarga(props.fecha));
 
 const FLECHA =
-  "size-9 cursor-pointer border border-line bg-white text-base text-forest not-disabled:hover:border-forest disabled:cursor-not-allowed disabled:opacity-45";
+  "size-8 cursor-pointer rounded border border-line bg-white flex items-center justify-center text-xs font-bold text-muted transition hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-40";
 </script>
 
 <template>
   <div
     class="flex flex-wrap items-center justify-between gap-4 max-tablet:gap-3"
   >
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2.5">
       <button
         aria-label="Día anterior"
         :class="FLECHA"
@@ -33,15 +33,15 @@ const FLECHA =
       >
         ←
       </button>
-      <div class="flex min-w-48 flex-col max-tablet:min-w-38">
+      <div class="flex min-w-44 flex-col max-tablet:min-w-36">
         <strong
-          class="font-serif text-xl font-normal tracking-tight max-tablet:text-lg"
+          class="font-sans text-base font-bold tracking-tight text-ink max-tablet:text-sm"
           >{{ etiqueta }}</strong
         >
         <small
           v-if="esHoy"
           class="text-micro font-bold tracking-widest text-coral uppercase"
-          >Hoy</small
+          >HOY</small
         >
       </div>
       <button
@@ -57,7 +57,7 @@ const FLECHA =
     <div class="flex items-center gap-2.5">
       <input
         aria-label="Elegir fecha"
-        class="w-auto border border-line bg-white px-3 py-3 text-xs text-ink outline-none transition focus:border-forest focus:shadow-focus"
+        class="cursor-pointer rounded border border-line bg-white px-3 py-1.5 text-xs text-ink outline-none transition focus:border-forest"
         :disabled="deshabilitado"
         type="date"
         :value="fecha"
@@ -65,7 +65,7 @@ const FLECHA =
       />
       <button
         v-if="!esHoy"
-        class="cursor-pointer border-0 bg-transparent p-0 text-xs font-bold text-muted not-disabled:hover:text-forest"
+        class="cursor-pointer border-0 bg-transparent p-0 text-xs font-semibold text-muted hover:text-ink"
         :disabled="deshabilitado"
         type="button"
         @click="emit('hoy')"

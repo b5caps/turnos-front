@@ -149,61 +149,56 @@ function handleSubmit() {
   <div>
     <div :class="INTRO">
       <p :class="KICKER">Registro externo</p>
-      <h2 :class="INTRO_TITULO">
-        {{ isLogin ? "Ingresá a GREB" : "Creá tu acceso" }}
-      </h2>
+      <h2 :class="INTRO_TITULO">Acceso Público Externo</h2>
       <p :class="INTRO_TEXTO">
-        {{
-          isLogin
-            ? "Ingresá con tu correo electrónico y contraseña."
-            : "Completá tus datos para reservar recursos de la biblioteca."
-        }}
+        {{ isLogin ? "Ingresá con tu correo electrónico y contraseña." : "" }}
       </p>
     </div>
 
-    <div class="mb-5 flex items-center gap-2 text-mini">
-      <span class="text-muted">¿Ya tenés cuenta?</span>
+    <!-- Tabs para alternar entre Registrarme y Ya tengo cuenta -->
+    <div class="mb-4 flex border-b border-line text-sm">
       <button
         type="button"
-        class="cursor-pointer border-b text-mini font-bold transition-colors"
-        :class="
-          isLogin
-            ? 'border-forest text-forest'
-            : 'border-transparent text-muted hover:text-ink'
-        "
-        @click="setMode('login')"
-      >
-        Ingresar
-      </button>
-      <span class="text-muted">/</span>
-      <button
-        type="button"
-        class="cursor-pointer border-b text-mini font-bold transition-colors"
+        class="pb-2 font-semibold transition-colors"
         :class="
           !isLogin
-            ? 'border-forest text-forest'
-            : 'border-transparent text-muted hover:text-ink'
+            ? 'border-b-2 border-notebook-ink text-ink'
+            : 'border-b-2 border-transparent text-muted hover:text-ink'
         "
         @click="setMode('register')"
       >
         Registrarme
       </button>
+      <button
+        type="button"
+        class="ml-6 pb-2 font-semibold transition-colors"
+        :class="
+          isLogin
+            ? 'border-b-2 border-notebook-ink text-ink'
+            : 'border-b-2 border-transparent text-muted hover:text-ink'
+        "
+        @click="setMode('login')"
+      >
+        Ya tengo cuenta
+      </button>
     </div>
 
-    <form v-if="isLogin" class="grid gap-4" @submit.prevent="handleSubmit">
+    <form v-if="isLogin" class="grid gap-3" @submit.prevent="handleSubmit">
       <label :class="ETIQUETA"
-        >Correo electrónico<input
+        >Correo electrónico *<input
           v-model="email"
           autocomplete="email"
           :class="CAMPO"
+          placeholder="nombre@gmail.com"
           required
           type="email"
       /></label>
       <label :class="ETIQUETA"
-        >Contraseña<input
+        >Contraseña *<input
           v-model="password"
           autocomplete="current-password"
           :class="CAMPO"
+          placeholder="••••••••••••"
           required
           type="password"
       /></label>
@@ -223,54 +218,72 @@ function handleSubmit() {
 
     <form
       v-else
-      class="grid grid-cols-2 gap-x-4 gap-y-3.5 max-tablet:grid-cols-1"
+      class="grid grid-cols-2 gap-x-4 gap-y-2.5 max-tablet:grid-cols-1"
       @submit.prevent="handleSubmit"
     >
       <label :class="ETIQUETA"
-        >Nombre<input
+        >Nombre *<input
           v-model="firstName"
           autocomplete="given-name"
           :class="CAMPO"
+          placeholder="Ej: Catalina"
           required
       /></label>
       <label :class="ETIQUETA"
-        >Apellido<input
+        >Apellido *<input
           v-model="lastName"
           autocomplete="family-name"
           :class="CAMPO"
+          placeholder="Ej: Cavallo"
           required
       /></label>
       <label :class="ETIQUETA"
-        >DNI<input v-model="dni" :class="CAMPO" inputmode="numeric" required
+        >DNI / Pasaporte *<input
+          v-model="dni"
+          :class="CAMPO"
+          inputmode="numeric"
+          placeholder="Ej: 41289650"
+          required
       /></label>
       <label :class="ETIQUETA"
-        >Celular<input
+        >Teléfono<input
           v-model="phone"
           autocomplete="tel"
           :class="CAMPO"
           inputmode="tel"
+          placeholder="Ej: 3564 521890"
           required
       /></label>
       <label :class="ETIQUETA"
-        >Localidad<input v-model="localidad" :class="CAMPO" required
+        >Ciudad<input
+          v-model="localidad"
+          :class="CAMPO"
+          placeholder="Ej: San Francisco"
+          required
       /></label>
       <label :class="ETIQUETA"
-        >Provincia<input v-model="provincia" :class="CAMPO" required
+        >Provincia<input
+          v-model="provincia"
+          :class="CAMPO"
+          placeholder="Ej: Córdoba"
+          required
       /></label>
-      <label :class="[ETIQUETA, 'col-span-full max-tablet:col-auto']"
-        >Correo electrónico<input
+      <label :class="ETIQUETA"
+        >Correo electrónico *<input
           v-model="email"
           autocomplete="email"
           :class="CAMPO"
+          placeholder="nombre@gmail.com"
           required
           type="email"
       /></label>
-      <label :class="[ETIQUETA, 'col-span-full max-tablet:col-auto']"
-        >Contraseña<input
+      <label :class="ETIQUETA"
+        >Contraseña *<input
           v-model="password"
           autocomplete="new-password"
           :class="CAMPO"
           minlength="8"
+          placeholder="••••••••••••"
           required
           type="password"
       /></label>

@@ -36,6 +36,10 @@ export function useGrebAuth() {
     "greb_is_authenticated",
     () => false,
   );
+  const bookingExpiresAt = useState<number | null>(
+    "greb_booking_expires_at",
+    () => null,
+  );
   const authenticatedUser = useState<UserType | null>(
     "greb_auth_user",
     () => null,
@@ -78,6 +82,7 @@ export function useGrebAuth() {
     reservaConfirmada.value = null;
     isAuthenticated.value = false;
     authenticatedUser.value = null;
+    bookingExpiresAt.value = null;
     Object.assign(student, { legajo: "", password: "" });
     Object.assign(external, {
       firstName: "",
@@ -268,6 +273,15 @@ export function useGrebAuth() {
       return;
     }
 
+    if (
+      bookingExpiresAt.value !== null &&
+      Date.now() > bookingExpiresAt.value
+    ) {
+      errorMessage.value =
+        "El tiempo para completar tu reserva ha vencido. Por favor, seleccioná nuevamente un horario.";
+      return;
+    }
+
     if (booking.wantsComputer && !booking.computerConditionsAccepted) {
       errorMessage.value =
         "Debés aceptar las condiciones de uso de la notebook.";
@@ -303,6 +317,7 @@ export function useGrebAuth() {
     student,
     external,
     booking,
+    bookingExpiresAt,
     isSubmitting,
     errorMessage,
     bookingCompleted,

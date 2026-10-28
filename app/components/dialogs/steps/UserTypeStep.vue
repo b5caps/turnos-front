@@ -20,9 +20,6 @@ const emit = defineEmits<{ choose: [type: UserType] }>();
     <div :class="INTRO">
       <p :class="KICKER">Primer paso</p>
       <h2 :class="INTRO_TITULO">¿Cómo vas a ingresar?</h2>
-      <p :class="INTRO_TEXTO">
-        Elegí el tipo de usuario para continuar con tu reserva.
-      </p>
     </div>
 
     <div class="grid gap-3">
@@ -33,9 +30,9 @@ const emit = defineEmits<{ choose: [type: UserType] }>();
       >
         <span
           aria-hidden="true"
-          class="grid size-9 place-items-center rounded-full bg-mint text-xl text-forest"
-          >⌂</span
-        >
+          class="grid size-11 shrink-0 place-items-center rounded-xl bg-notebook-ink"
+          ><img src="/logo utn blanco.png" alt="" class="size-6 object-contain"
+        /></span>
         <span :class="TARJETA_TEXTO"
           ><strong class="text-sm">Usuario UTN</strong
           ><small class="text-mini text-muted"
@@ -51,9 +48,21 @@ const emit = defineEmits<{ choose: [type: UserType] }>();
       >
         <span
           aria-hidden="true"
-          class="grid size-9 place-items-center rounded-full bg-external text-xl text-coral"
-          >✦</span
-        >
+          class="grid size-11 shrink-0 place-items-center rounded-xl bg-coral text-white"
+          ><svg
+            class="size-5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            viewBox="0 0 24 24"
+          >
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <line x1="19" x2="19" y1="8" y2="14" />
+            <line x1="22" x2="16" y1="11" y2="11" /></svg
+        ></span>
         <span :class="TARJETA_TEXTO"
           ><strong class="text-sm">Externos</strong
           ><small class="text-mini text-muted"
@@ -65,9 +74,26 @@ const emit = defineEmits<{ choose: [type: UserType] }>();
     </div>
 
     <NuxtLink
-      class="mt-3 flex items-center gap-4 border border-dashed border-hint px-5 py-4 text-ink no-underline transition-colors hover:border-forest"
+      :class="[TARJETA, 'mt-3 border-dashed no-underline']"
       to="/disponibilidad"
     >
+      <span
+        aria-hidden="true"
+        class="grid size-11 shrink-0 place-items-center rounded-xl bg-hairline text-muted"
+      >
+        <svg
+          class="size-5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path
+            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+          />
+        </svg>
+      </span>
       <span :class="TARJETA_TEXTO"
         ><strong class="text-sm">Visualizar disponibilidad de recursos</strong
         ><small class="text-mini text-muted"
@@ -78,7 +104,7 @@ const emit = defineEmits<{ choose: [type: UserType] }>();
       <span aria-hidden="true" :class="TARJETA_FLECHA">→</span>
     </NuxtLink>
 
-    <p class="mt-6 text-mini text-muted">
+    <p class="hidden">
       <span
         class="mr-1.5 inline-grid size-4 place-items-center rounded-full border border-hint"
         >i</span

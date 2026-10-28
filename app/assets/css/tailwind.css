@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Trebuchet MS", "Segoe UI", sans-serif;
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
   --font-serif: Georgia, serif;
 
   --breakpoint-tablet: 720px;
@@ -23,9 +25,6 @@
   --color-coral-dark: #da654c;
   --color-danger: #bd543f;
 
-  --color-shell: #dce9df;
-  --color-shell-from: #e2eee3;
-  --color-shell-to: #cce0d6;
   --color-aside-copy: #b9d6ca;
   --color-aside-kicker: #a9dbc3;
 

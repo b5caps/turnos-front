@@ -54,154 +54,237 @@ if (!isAuthenticated.value) {
 
 <template>
   <main
-    class="relative grid min-h-screen place-items-center overflow-hidden bg-shell px-6 py-10 font-sans text-ink [background-image:radial-gradient(circle_at_9%_12%,rgb(255_255_255/0.75),transparent_30%),linear-gradient(135deg,#e2eee3,#cce0d6)] max-tablet:place-items-start max-tablet:p-3.5"
+    class="relative flex min-h-screen flex-col items-center justify-between bg-paper font-sans text-ink"
   >
-    <span
-      aria-hidden="true"
-      class="pointer-events-none absolute -top-[335px] -right-[120px] size-[530px] rounded-full border border-forest/15"
-    ></span>
-    <span
-      aria-hidden="true"
-      class="pointer-events-none absolute -bottom-[520px] -left-[260px] size-[680px] rounded-full border border-forest/15"
-    ></span>
-
-    <section
-      aria-labelledby="greb-title"
-      class="relative z-1 w-[min(100%,1050px)] animate-rise border border-white/70 bg-paper shadow-dialog max-tablet:my-2.5"
+    <header
+      class="flex w-full items-center justify-between border-b border-line bg-white px-8 py-3.5"
     >
-      <header
-        class="flex min-h-26 items-center gap-4 border-b border-line px-10 py-5 max-tablet:p-5"
-      >
+      <div class="flex items-center gap-6">
+        <img
+          src="/Logo_GREB.jpg"
+          alt="UTN GREB"
+          class="h-8 w-auto object-contain"
+        />
+      </div>
+
+      <div v-if="isAuthenticated" class="flex items-center gap-4">
         <span
-          class="grid size-14 place-items-center overflow-hidden rounded-[13px_13px_13px_3px] bg-forest"
+          v-if="!isBookingCompleted"
+          class="inline-flex items-center gap-1.5 rounded-full bg-notebook-ink px-4 py-1.5 text-xs font-semibold text-white shadow-xs"
         >
-          <img
-            alt="Logo UTN"
-            class="size-12 object-contain"
-            src="/logo%20utn%20blanco.png"
-          />
+          <svg
+            class="size-3.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <rect height="18" rx="2" ry="2" width="18" x="3" y="4" />
+            <line x1="16" x2="16" y1="2" y2="6" />
+            <line x1="8" x2="8" y1="2" y2="6" />
+            <line x1="3" x2="21" y1="10" y2="10" />
+          </svg>
+          <span>Reservar</span>
         </span>
-        <div>
-          <p
-            class="mb-1 text-micro font-bold tracking-widest text-coral uppercase"
-          >
-            Facultad Regional San Francisco
-          </p>
-          <h1
-            id="greb-title"
-            class="font-serif text-2xl font-bold tracking-wide"
-          >
-            GREB
-          </h1>
-          <p
-            class="mt-0.5 text-xs text-muted max-tablet:max-w-58 max-tablet:leading-snug"
-          >
-            Gestor de Reservas y Espacios de Biblioteca
-          </p>
-        </div>
         <button
-          v-if="isAuthenticated || step === 3"
+          v-else
           type="button"
-          class="ml-auto cursor-pointer border-b border-mint text-xs font-bold text-forest hover:border-forest disabled:cursor-wait disabled:opacity-65"
+          class="flex cursor-pointer items-center gap-1.5 border-0 bg-transparent text-xs font-medium text-muted transition-colors hover:text-ink"
+          @click="bookingCompleted = false"
+        >
+          <svg
+            class="size-3.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <rect height="18" rx="2" ry="2" width="18" x="3" y="4" />
+            <line x1="16" x2="16" y1="2" y2="6" />
+            <line x1="8" x2="8" y1="2" y2="6" />
+            <line x1="3" x2="21" y1="10" y2="10" />
+          </svg>
+          <span>Reservar</span>
+        </button>
+
+        <span
+          class="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-ink"
+        >
+          <svg
+            class="size-3.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"
+            />
+            <path d="M6 2v20" />
+          </svg>
+          <span>Ver mis reservas</span>
+        </span>
+
+        <span class="h-4 w-px bg-line" aria-hidden="true"></span>
+
+        <button
+          type="button"
+          class="flex cursor-pointer items-center gap-1.5 border-0 bg-transparent text-xs font-semibold text-muted transition-colors hover:text-ink disabled:cursor-wait disabled:opacity-65"
           :disabled="isSubmitting"
           @click="handleLogout"
         >
-          {{ isSubmitting ? "Cerrando sesión..." : "Cerrar sesión" }}
+          <svg
+            class="size-3.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" x2="9" y1="12" y2="12" />
+          </svg>
+          <span>{{
+            isSubmitting ? "Cerrando sesión..." : "Cerrar sesión"
+          }}</span>
         </button>
-      </header>
+      </div>
+    </header>
 
-      <div
-        :class="
-          step === 3
-            ? 'block'
-            : 'grid min-h-128 grid-cols-[37%_63%] max-tablet:block'
-        "
+    <!-- Paso 3: Tarjeta blanca centrada a página completa -->
+    <div
+      v-if="step === 3"
+      class="my-6 w-full max-w-4xl flex-1 px-4 max-tablet:my-3"
+    >
+      <section
+        aria-labelledby="greb-booking-title"
+        class="rounded-2xl border border-line bg-white p-6 shadow-card max-tablet:p-4"
       >
-        <aside
-          v-if="step !== 3"
-          class="relative flex flex-col justify-between overflow-hidden bg-forest px-10 pt-14 pb-9 text-white after:absolute after:-right-[145px] after:-bottom-[90px] after:size-[260px] after:rounded-full after:border after:border-white/15 after:content-[''] max-tablet:min-h-40 max-tablet:px-6 max-tablet:py-6"
+        <ResourceBookingForm
+          :completed="isBookingCompleted"
+          :error="bookingError"
+          :loading="isSubmitting"
+          :model-value="booking"
+          :reserva="reservaConfirmada"
+          @back="goBack"
+          @submit="submitBooking"
+          @update:model-value="updateBooking"
+          @nueva-reserva="bookingCompleted = false"
+        />
+      </section>
+    </div>
+
+    <!-- Pasos 1 y 2: Diálogo con sidebar -->
+    <div v-else class="my-auto flex w-full justify-center px-4 max-tablet:my-4">
+      <section
+        aria-labelledby="greb-title"
+        class="relative z-1 w-full max-w-4xl animate-rise overflow-hidden rounded-2xl border border-line bg-white shadow-card"
+      >
+        <div
+          class="grid min-h-128 grid-cols-[37%_63%] max-tablet:block max-tablet:min-h-0"
         >
-          <div>
-            <p
-              class="mb-1 text-micro font-bold tracking-widest text-aside-kicker uppercase"
+          <aside
+            class="relative flex flex-col justify-between overflow-hidden bg-notebook-ink p-8 text-white max-tablet:block max-tablet:min-h-0 max-tablet:p-4"
+          >
+            <div
+              aria-hidden="true"
+              class="pointer-events-none absolute -right-12 -bottom-12 size-64 rounded-full border border-notebook/20 max-tablet:hidden"
             >
-              Tu espacio para aprender
-            </p>
-            <h2
-              class="my-4 max-w-60 font-serif text-4xl leading-none font-normal max-tablet:my-2 max-tablet:text-2xl"
-            >
-              Biblioteca Dr. Antonio Lamberghini.
-            </h2>
-            <p
-              class="max-w-60 text-tiny leading-relaxed text-aside-copy max-tablet:hidden"
-            >
-              Encontrá el recurso que necesitás y asegurá tu lugar en la
-              biblioteca.
-            </p>
-          </div>
-        </aside>
+              <div
+                class="absolute inset-6 rounded-full border border-notebook/15"
+              ></div>
+              <div
+                class="absolute inset-14 rounded-full border border-notebook/10"
+              ></div>
+            </div>
 
-        <div class="w-full px-14 pt-10 pb-8 max-tablet:px-5.5 max-tablet:py-7">
-          <div class="flex items-baseline justify-between text-mini text-muted">
-            <span
-              ><strong class="mr-2 text-base font-extrabold text-forest"
-                >0{{ step }}</strong
-              >{{ stepLabel }}</span
-            >
-            <span class="text-mini text-faint">Paso {{ step }} de 3</span>
-          </div>
-          <div class="mt-2 mb-9 h-0.75 overflow-hidden bg-track">
-            <span
-              class="block h-full bg-coral transition-[width] duration-400 ease-in-out"
-              :style="{ width: `${(step / 3) * 100}%` }"
-            ></span>
-          </div>
+            <div class="relative z-1">
+              <h2
+                id="greb-title"
+                class="font-sans text-2xl font-bold leading-tight text-white max-tablet:text-sm max-tablet:leading-snug max-tablet:whitespace-nowrap"
+              >
+                Gestor de Reservas<br class="max-tablet:hidden" />
+                de Biblioteca
+              </h2>
+              <div
+                class="mt-3.5 h-1 w-8 rounded-full bg-notebook max-tablet:hidden"
+              ></div>
+            </div>
 
-          <div :key="`step-wrapper-${step}`">
-            <UserTypeStep
-              v-if="step === 1"
-              :selected="userType"
-              @choose="chooseUserType"
-            />
-            <StudentLoginForm
-              v-else-if="step === 2 && userType === 'student'"
-              :error="errorMessage"
-              :loading="isSubmitting"
-              :model-value="student"
-              @back="goBack"
-              @login-success="handleAuthSuccess"
-              @update:model-value="updateStudent"
-            />
-            <ExternalRegisterForm
-              v-else-if="step === 2 && userType === 'external'"
-              :error="errorMessage"
-              :loading="isSubmitting"
-              :model-value="external"
-              @back="goBack"
-              @register-success="handleAuthSuccess"
-              @login-success="handleAuthSuccess"
-              @update:model-value="updateExternal"
-            />
-            <ResourceBookingForm
-              v-else-if="step === 3"
-              :completed="isBookingCompleted"
-              :error="bookingError"
-              :loading="isSubmitting"
-              :model-value="booking"
-              :reserva="reservaConfirmada"
-              @back="goBack"
-              @submit="submitBooking"
-              @update:model-value="updateBooking"
-            />
+            <div
+              class="relative z-1 mt-auto space-y-2 pt-12 text-xs text-white/95 max-tablet:hidden"
+            >
+              <div class="flex items-center gap-2.5">
+                <svg
+                  aria-hidden="true"
+                  class="size-4 shrink-0 text-coral"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 6v6l4 2" />
+                </svg>
+                <span>Horario de 10:00 a 22:00</span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <svg
+                  aria-hidden="true"
+                  class="size-4 shrink-0 text-coral"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <rect height="12" rx="1" width="18" x="3" y="4" />
+                  <path d="M2 20h20" />
+                </svg>
+                <span>Uso de salas y Notebooks</span>
+              </div>
+            </div>
+          </aside>
+
+          <div class="flex w-full flex-col justify-center p-10 max-tablet:p-6">
+            <div :key="`step-wrapper-${step}`">
+              <UserTypeStep
+                v-if="step === 1"
+                :selected="userType"
+                @choose="chooseUserType"
+              />
+              <StudentLoginForm
+                v-else-if="step === 2 && userType === 'student'"
+                :error="errorMessage"
+                :loading="isSubmitting"
+                :model-value="student"
+                @back="goBack"
+                @login-success="handleAuthSuccess"
+                @update:model-value="updateStudent"
+              />
+              <ExternalRegisterForm
+                v-else-if="step === 2 && userType === 'external'"
+                :error="errorMessage"
+                :loading="isSubmitting"
+                :model-value="external"
+                @back="goBack"
+                @register-success="handleAuthSuccess"
+                @login-success="handleAuthSuccess"
+                @update:model-value="updateExternal"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      </section>
+    </div>
 
-      <footer
-        class="flex justify-between border-t border-line px-10 py-4 text-micro text-footer max-tablet:px-5 max-tablet:py-3.5"
-      >
-        <span>GREB · Biblioteca</span>
-      </footer>
-    </section>
+    <footer class="mb-6 space-y-0.5 text-center text-xs text-muted">
+      <p class="font-semibold text-ink">
+        Gestor de Reservas y Espacios de Biblioteca
+      </p>
+      <p class="text-mini text-faint">
+        Universidad Tecnológica Nacional • Facultad Regional San Francisco • Av.
+        de la Universidad 501, San Francisco, Córdoba.
+      </p>
+    </footer>
   </main>
 </template>

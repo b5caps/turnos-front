@@ -31,108 +31,151 @@ onMounted(cargar);
 
 <template>
   <main
-    class="relative grid min-h-screen place-items-center overflow-hidden bg-shell px-6 py-10 font-sans text-ink [background-image:radial-gradient(circle_at_9%_12%,rgb(255_255_255/0.75),transparent_30%),linear-gradient(135deg,#e2eee3,#cce0d6)] max-tablet:place-items-start max-tablet:p-3.5"
+    class="relative flex min-h-screen flex-col items-center justify-between bg-paper font-sans text-ink"
   >
-    <span
-      aria-hidden="true"
-      class="pointer-events-none absolute -top-[335px] -right-[120px] size-[530px] rounded-full border border-forest/15"
-    ></span>
-    <span
-      aria-hidden="true"
-      class="pointer-events-none absolute -bottom-[520px] -left-[260px] size-[680px] rounded-full border border-forest/15"
-    ></span>
-
-    <section
-      aria-labelledby="disponibilidad-titulo"
-      class="relative z-1 w-[min(100%,1050px)] animate-rise border border-white/70 bg-paper shadow-dialog max-tablet:my-2.5"
+    <header
+      class="flex w-full items-center justify-between border-b border-line bg-white px-8 py-3.5"
     >
-      <header
-        class="flex min-h-26 items-center gap-4 border-b border-line px-10 py-5 max-tablet:p-5"
-      >
-        <span
-          class="grid size-14 place-items-center overflow-hidden rounded-[13px_13px_13px_3px] bg-forest"
+      <div class="flex items-center gap-6">
+        <img
+          src="/Logo_GREB.jpg"
+          alt="UTN GREB"
+          class="h-8 w-auto object-contain"
+        />
+      </div>
+
+      <div v-if="isAuthenticated" class="flex items-center gap-4">
+        <NuxtLink
+          to="/"
+          class="inline-flex items-center gap-1.5 rounded-full bg-notebook-ink px-4 py-1.5 text-xs font-semibold text-white shadow-xs no-underline"
         >
-          <img
-            alt="Logo UTN"
-            class="size-12 object-contain"
-            src="/logo%20utn%20blanco.png"
-          />
+          <svg
+            class="size-3.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <rect height="18" rx="2" ry="2" width="18" x="3" y="4" />
+            <line x1="16" x2="16" y1="2" y2="6" />
+            <line x1="8" x2="8" y1="2" y2="6" />
+            <line x1="3" x2="21" y1="10" y2="10" />
+          </svg>
+          <span>Reservar</span>
+        </NuxtLink>
+
+        <span
+          class="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-ink"
+        >
+          <svg
+            class="size-3.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"
+            />
+            <path d="M6 2v20" />
+          </svg>
+          <span>Ver mis reservas</span>
         </span>
-        <div>
-          <p
-            class="mb-1 text-micro font-bold tracking-widest text-coral uppercase"
-          >
-            Biblioteca universitaria
-          </p>
-          <h1
-            id="disponibilidad-titulo"
-            class="font-serif text-2xl font-bold tracking-wide"
-          >
-            Disponibilidad
-          </h1>
-          <p
-            class="mt-0.5 text-xs text-muted max-tablet:max-w-58 max-tablet:leading-snug"
-          >
-            Consultá qué lugares y notebooks hay disponibles
-          </p>
-        </div>
+
+        <span class="h-4 w-px bg-line" aria-hidden="true"></span>
+
         <button
-          v-if="isAuthenticated"
           type="button"
-          class="ml-auto cursor-pointer border-b border-mint text-xs font-bold text-forest hover:border-forest disabled:cursor-wait disabled:opacity-65"
+          class="flex cursor-pointer items-center gap-1.5 border-0 bg-transparent text-xs font-semibold text-muted transition-colors hover:text-ink disabled:cursor-wait disabled:opacity-65"
           :disabled="isSubmitting"
           @click="logout"
         >
-          {{ isSubmitting ? "Cerrando sesión..." : "Cerrar sesión" }}
+          <svg
+            class="size-3.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" x2="9" y1="12" y2="12" />
+          </svg>
+          <span>{{
+            isSubmitting ? "Cerrando sesión..." : "Cerrar sesión"
+          }}</span>
         </button>
-        <NuxtLink
-          v-else
-          class="ml-auto border-b border-mint text-xs font-bold text-forest no-underline hover:border-forest"
-          to="/"
-          >Ingresar</NuxtLink
-        >
-      </header>
-
-      <div
-        class="flex flex-col gap-5 px-10 pt-8 pb-8 max-tablet:gap-4 max-tablet:px-4.5 max-tablet:py-5"
-      >
-        <SelectorFecha
-          :deshabilitado="cargando"
-          :es-hoy="esHoy"
-          :fecha="fecha"
-          @hoy="irAHoy"
-          @mover="moverDias"
-          @update:fecha="irAFecha"
-        />
-
-        <FiltroSalas
-          v-if="abierta && salas.length"
-          :salas="salas"
-          :seleccionada="salaSeleccionada"
-          @seleccionar="seleccionarSala"
-        />
-
-        <EstadoDisponibilidad
-          :abierta="abierta"
-          :cargando="cargando"
-          :error-message="errorMessage"
-          :sin-bloques="!bloques.length"
-          @reintentar="cargar"
-        >
-          <GrillaDisponibilidad
-            :bloques="bloques"
-            :estado-de="estadoDe"
-            :recursos="recursosVisibles"
-          />
-          <ReferenciaEstados />
-        </EstadoDisponibilidad>
       </div>
 
-      <footer
-        class="flex justify-between border-t border-line px-10 py-4 text-micro text-footer max-tablet:px-5 max-tablet:py-3.5"
+      <NuxtLink
+        v-else
+        to="/"
+        class="cursor-pointer border-0 bg-transparent text-xs font-semibold text-muted transition-colors hover:text-ink no-underline"
       >
-        <span>GREB · Biblioteca</span><span>Lunes a viernes, 10 a 22</span>
-      </footer>
-    </section>
+        Ingresar
+      </NuxtLink>
+    </header>
+
+    <div class="my-6 w-full max-w-4xl flex-1 px-4 max-tablet:my-3">
+      <section
+        aria-labelledby="disponibilidad-titulo"
+        class="rounded-2xl border border-line bg-white p-6 shadow-card max-tablet:p-4"
+      >
+        <div class="mb-5">
+          <h1
+            id="disponibilidad-titulo"
+            class="font-sans text-2xl font-bold tracking-tight text-ink"
+          >
+            Disponibilidad
+          </h1>
+          <p class="mt-0.5 text-xs text-muted">
+            Consultá qué lugares y notebooks hay disponibles
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-5">
+          <SelectorFecha
+            :deshabilitado="cargando"
+            :es-hoy="esHoy"
+            :fecha="fecha"
+            @hoy="irAHoy"
+            @mover="moverDias"
+            @update:fecha="irAFecha"
+          />
+
+          <FiltroSalas
+            v-if="abierta && salas.length"
+            :salas="salas"
+            :seleccionada="salaSeleccionada"
+            @seleccionar="seleccionarSala"
+          />
+
+          <EstadoDisponibilidad
+            :abierta="abierta"
+            :cargando="cargando"
+            :error-message="errorMessage"
+            :sin-bloques="!bloques.length"
+            @reintentar="cargar"
+          >
+            <GrillaDisponibilidad
+              :bloques="bloques"
+              :estado-de="estadoDe"
+              :recursos="recursosVisibles"
+            />
+            <ReferenciaEstados />
+          </EstadoDisponibilidad>
+        </div>
+      </section>
+    </div>
+
+    <footer class="mb-6 space-y-0.5 text-center text-xs text-muted">
+      <p class="font-semibold text-ink">
+        Gestor de Reservas y Espacios de Biblioteca
+      </p>
+      <p class="text-mini text-faint">
+        Universidad Tecnológica Nacional • Facultad Regional San Francisco • Av.
+        de la Universidad 501, San Francisco, Córdoba.
+      </p>
+    </footer>
   </main>
 </template>
