@@ -150,9 +150,7 @@ function handleSubmit() {
     <div :class="INTRO">
       <p :class="KICKER">Registro externo</p>
       <h2 :class="INTRO_TITULO">Acceso Público Externo</h2>
-      <p :class="INTRO_TEXTO">
-        {{ isLogin ? "Ingresá con tu correo electrónico y contraseña." : "" }}
-      </p>
+
     </div>
 
     <!-- Tabs para alternar entre Registrarme y Ya tengo cuenta -->

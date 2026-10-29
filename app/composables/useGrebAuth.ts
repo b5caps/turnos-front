@@ -1,11 +1,14 @@
-import { computed, reactive, ref } from "vue";
+import { computed, getCurrentInstance, onMounted, reactive, ref } from "vue";
 import {
   cerrarSesionApi,
   iniciarSesionApi,
   limpiarToken,
+  limpiarUsuarioRol,
   obtenerToken,
+  obtenerUsuarioRol,
   registrarApi,
 } from "~/api/auth";
+import type { UsuarioAutenticado } from "~/api/auth";
 import { crearReserva } from "~/api/reservas";
 import type { ReservaConfirmada } from "~/api/reservas";
 import type {
@@ -40,13 +43,51 @@ export function useGrebAuth() {
     "greb_booking_expires_at",
     () => null,
   );
+  const usuario = useState<UsuarioAutenticado | null>(
+    "greb_usuario",
+    () => null,
+  );
   const authenticatedUser = useState<UserType | null>(
     "greb_auth_user",
     () => null,
   );
 
+  function restaurarSesion() {
+    const token = obtenerToken();
+    if (token) {
+      isAuthenticated.value = true;
+      step.value = 3;
+      const rol = obtenerUsuarioRol();
+      if (rol) {
+        authenticatedUser.value = rol;
+        userType.value = rol;
+      }
+      if (!usuario.value) {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          const id = Number(payload.sub);
+          if (id) {
+            usuario.value = {
+              id,
+              rol: payload.rol,
+              nombre: "",
+              apellido: "",
+              email: "",
+            };
+          }
+        } catch {
+          // Si el token no tiene payload decodificable, continuar sin bloquear
+        }
+      }
+    }
+  }
+
   if (import.meta.client) {
-    isAuthenticated.value = Boolean(obtenerToken());
+    if (getCurrentInstance()) {
+      onMounted(restaurarSesion);
+    } else {
+      restaurarSesion();
+    }
   }
 
   const student = reactive<StudentCredentials>({ legajo: "", password: "" });
@@ -83,6 +124,7 @@ export function useGrebAuth() {
     isAuthenticated.value = false;
     authenticatedUser.value = null;
     bookingExpiresAt.value = null;
+    usuario.value = null;
     Object.assign(student, { legajo: "", password: "" });
     Object.assign(external, {
       firstName: "",
@@ -131,6 +173,13 @@ export function useGrebAuth() {
     if (step.value === 2) step.value = 1;
   }
 
+  function irAReservar() {
+    errorMessage.value = "";
+    bookingCompleted.value = false;
+    reservaConfirmada.value = null;
+    step.value = 3;
+  }
+
   async function login(legajoOEmail?: string, password?: string) {
     errorMessage.value = "";
     const identificador = (legajoOEmail ?? student.legajo).trim();
@@ -144,6 +193,7 @@ export function useGrebAuth() {
     isSubmitting.value = true;
     try {
       const data = await iniciarSesionApi(identificador, pass);
+      usuario.value = data.usuario;
       isAuthenticated.value = true;
       authenticatedUser.value = (
         data.usuario?.rol?.toUpperCase() === "UTN" ? "student" : "external"
@@ -215,7 +265,7 @@ export function useGrebAuth() {
 
       isSubmitting.value = true;
       try {
-        await registrarApi({
+        const registrado = await registrarApi({
           rol: "EXTERNO",
           tipoDocumento: "DNI",
           documento: external.dni.trim(),
@@ -228,6 +278,7 @@ export function useGrebAuth() {
           provincia: external.provincia.trim(),
           organizacion: "Particular",
         });
+        usuario.value = registrado.usuario;
         isAuthenticated.value = true;
         authenticatedUser.value = "external";
         step.value = 3;
@@ -255,6 +306,7 @@ export function useGrebAuth() {
           : "No pudimos cerrar la sesión en el servidor.";
     } finally {
       limpiarToken();
+      limpiarUsuarioRol();
       resetFlow(false);
       isSubmitting.value = false;
       await navigateTo("/");
@@ -288,9 +340,15 @@ export function useGrebAuth() {
       return;
     }
 
+    if (!usuario.value) {
+      errorMessage.value = "Volvé a iniciar sesión para confirmar la reserva.";
+      return;
+    }
+
     isSubmitting.value = true;
     try {
       const confirmada = await crearReserva({
+        usuarioId: usuario.value.id,
         fecha: booking.date,
         inicio: booking.startTime,
         fin: booking.endTime,
@@ -325,12 +383,14 @@ export function useGrebAuth() {
     stepLabel,
     chooseUserType,
     goBack,
+    irAReservar,
     login,
     submitAuth,
     submitBooking,
     resetFlow,
     isAuthenticated,
     authenticatedUser,
+    usuario,
     logout,
   };
 }

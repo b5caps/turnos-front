@@ -34,7 +34,7 @@ onMounted(cargar);
     class="relative flex min-h-screen flex-col items-center justify-between bg-paper font-sans text-ink"
   >
     <header
-      class="flex w-full items-center justify-between border-b border-line bg-white px-8 py-3.5"
+      class="sticky top-0 z-50 flex w-full items-center justify-between border-b border-line bg-white px-8 py-3.5"
     >
       <div class="flex items-center gap-6">
         <img
@@ -64,8 +64,9 @@ onMounted(cargar);
           <span>Reservar</span>
         </NuxtLink>
 
-        <span
-          class="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-ink"
+        <NuxtLink
+          to="/mis-reservas"
+          class="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-ink no-underline"
         >
           <svg
             class="size-3.5"
@@ -80,7 +81,7 @@ onMounted(cargar);
             <path d="M6 2v20" />
           </svg>
           <span>Ver mis reservas</span>
-        </span>
+        </NuxtLink>
 
         <span class="h-4 w-px bg-line" aria-hidden="true"></span>
 
@@ -128,9 +129,6 @@ onMounted(cargar);
           >
             Disponibilidad
           </h1>
-          <p class="mt-0.5 text-xs text-muted">
-            Consultá qué lugares y notebooks hay disponibles
-          </p>
         </div>
 
         <div class="flex flex-col gap-5">

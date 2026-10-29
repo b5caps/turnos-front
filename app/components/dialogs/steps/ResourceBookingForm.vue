@@ -284,11 +284,12 @@ onUnmounted(() => {
         </dl>
 
         <div class="mt-6">
-          <span
-            class="inline-flex cursor-pointer items-center gap-1 text-xs font-semibold text-notebook-ink transition-colors hover:underline"
+          <NuxtLink
+            to="/mis-reservas"
+            class="inline-flex cursor-pointer items-center gap-1 text-xs font-semibold text-notebook-ink no-underline transition-colors hover:underline"
           >
             Ver mis reservas →
-          </span>
+          </NuxtLink>
         </div>
       </div>
 

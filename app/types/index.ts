@@ -1,5 +1,5 @@
 export type UserType = "student" | "external";
-export type DialogStep = 1 | 2 | 3;
+export type DialogStep = 1 | 2 | 3 | 4;
 
 export interface StudentCredentials {
   legajo: string;

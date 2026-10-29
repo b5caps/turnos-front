@@ -9,6 +9,8 @@ export const ETIQUETA =
 export const CAMPO =
   "w-full border border-line bg-white px-3 py-2 text-xs font-normal text-ink rounded-lg outline-none transition focus:border-forest focus:shadow-focus placeholder:text-faint";
 export const ERROR = "mt-2.5 text-mini text-danger";
+export const AVISO =
+  "m-0 border border-line bg-paper px-5 py-9 text-center text-tiny text-muted";
 export const ACCIONES = "mt-4 flex items-center justify-between";
 
 export const BOTON =

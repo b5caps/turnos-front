@@ -57,7 +57,7 @@ if (!isAuthenticated.value) {
     class="relative flex min-h-screen flex-col items-center justify-between bg-paper font-sans text-ink"
   >
     <header
-      class="flex w-full items-center justify-between border-b border-line bg-white px-8 py-3.5"
+      class="sticky top-0 z-50 flex w-full items-center justify-between border-b border-line bg-white px-8 py-3.5"
     >
       <div class="flex items-center gap-6">
         <img
@@ -107,8 +107,9 @@ if (!isAuthenticated.value) {
           <span>Reservar</span>
         </button>
 
-        <span
-          class="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-ink"
+        <NuxtLink
+          to="/mis-reservas"
+          class="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-ink no-underline"
         >
           <svg
             class="size-3.5"
@@ -123,7 +124,7 @@ if (!isAuthenticated.value) {
             <path d="M6 2v20" />
           </svg>
           <span>Ver mis reservas</span>
-        </span>
+        </NuxtLink>
 
         <span class="h-4 w-px bg-line" aria-hidden="true"></span>
 
@@ -209,39 +210,6 @@ if (!isAuthenticated.value) {
               <div
                 class="mt-3.5 h-1 w-8 rounded-full bg-notebook max-tablet:hidden"
               ></div>
-            </div>
-
-            <div
-              class="relative z-1 mt-auto space-y-2 pt-12 text-xs text-white/95 max-tablet:hidden"
-            >
-              <div class="flex items-center gap-2.5">
-                <svg
-                  aria-hidden="true"
-                  class="size-4 shrink-0 text-coral"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 6v6l4 2" />
-                </svg>
-                <span>Horario de 10:00 a 22:00</span>
-              </div>
-              <div class="flex items-center gap-2.5">
-                <svg
-                  aria-hidden="true"
-                  class="size-4 shrink-0 text-coral"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                >
-                  <rect height="12" rx="1" width="18" x="3" y="4" />
-                  <path d="M2 20h20" />
-                </svg>
-                <span>Uso de salas y Notebooks</span>
-              </div>
             </div>
           </aside>
 

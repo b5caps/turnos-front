@@ -20,5 +20,6 @@ export interface RecursoDisponibilidad {
 export interface DisponibilidadDia {
   fecha: string;
   abierta: boolean;
+  bloques: string[];
   recursos: RecursoDisponibilidad[];
 }

@@ -35,6 +35,10 @@ export function etiquetaDuracion(minutos: number) {
   return resto ? `${horas}h${resto}m` : `${horas}h`;
 }
 
+export const ETIQUETA_HORARIO = `Lunes a viernes, ${minutosAHora(
+  APERTURA_MINUTOS,
+).slice(0, 2)} a ${minutosAHora(CIERRE_MINUTOS).slice(0, 2)}`;
+
 export function minutosAHora(minutos: number) {
   const horas = Math.floor(minutos / 60)
     .toString()
@@ -46,18 +50,6 @@ export function minutosAHora(minutos: number) {
 export function horaAMinutos(hora: string) {
   const [horas, minutos] = hora.split(":");
   return Number(horas) * 60 + Number(minutos);
-}
-
-export function generarBloques() {
-  const bloques: string[] = [];
-  for (
-    let minutos = APERTURA_MINUTOS;
-    minutos < CIERRE_MINUTOS;
-    minutos += BLOQUE_MINUTOS
-  ) {
-    bloques.push(minutosAHora(minutos));
-  }
-  return bloques;
 }
 
 function aFechaLocal(fecha: string) {
@@ -85,13 +77,6 @@ export function aIsoConZona(fecha: string, hora: string) {
   return `${fecha}T${hora}:00${ZONA_HORARIA}`;
 }
 
-export function finDelBloque(fecha: string, inicio: string) {
-  return aIsoConZona(
-    fecha,
-    minutosAHora(horaAMinutos(inicio) + BLOQUE_MINUTOS),
-  );
-}
-
 export function esDiaHabil(fecha: string) {
   return DIAS_HABILES.includes(aFechaLocal(fecha).getDay());
 }
@@ -99,4 +84,15 @@ export function esDiaHabil(fecha: string) {
 export function formatearFechaLarga(fecha: string) {
   const referencia = aFechaLocal(fecha);
   return `${NOMBRES_DIA[referencia.getDay()]} ${referencia.getDate()} de ${NOMBRES_MES[referencia.getMonth()]}`;
+}
+
+const MINUTOS_ZONA =
+  horaAMinutos(ZONA_HORARIA.slice(1)) * (ZONA_HORARIA.startsWith("-") ? -1 : 1);
+
+export function partesDeIso(iso: string) {
+  const enZona = new Date(new Date(iso).getTime() + MINUTOS_ZONA * 60000);
+  return {
+    fecha: enZona.toISOString().slice(0, 10),
+    hora: enZona.toISOString().slice(11, 16),
+  };
 }

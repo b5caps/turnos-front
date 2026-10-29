@@ -1,7 +1,6 @@
 import { computed, ref } from "vue";
 import {
   BLOQUE_MINUTOS,
-  generarBloques,
   hoyIso,
   horaAMinutos,
   sumarDias,
@@ -24,7 +23,7 @@ function consultarDisponibilidad(fecha: string): Promise<DisponibilidadDia> {
 }
 
 export function useDisponibilidad() {
-  const bloques = generarBloques();
+  const bloques = computed(() => dia.value?.bloques ?? []);
   const fecha = ref(hoyIso());
   const salaSeleccionada = ref<number | null>(null);
   const dia = ref<DisponibilidadDia | null>(null);
@@ -51,13 +50,15 @@ export function useDisponibilidad() {
 
   const desdeVisible = computed(() => {
     if (!esHoy.value) return 0;
-    const indice = bloques.findIndex(
+    const indice = bloques.value.findIndex(
       (inicio) => horaAMinutos(inicio) + BLOQUE_MINUTOS > minutosAhora.value,
     );
-    return indice < 0 ? bloques.length : indice;
+    return indice < 0 ? bloques.value.length : indice;
   });
 
-  const bloquesVisibles = computed(() => bloques.slice(desdeVisible.value));
+  const bloquesVisibles = computed(() =>
+    bloques.value.slice(desdeVisible.value),
+  );
 
   const recursosVisibles = computed<RecursoDisponibilidad[]>(() => {
     const elegidas =
@@ -112,7 +113,7 @@ export function useDisponibilidad() {
 
   function duracionesPosibles(recursoId: number, inicio: string) {
     const recurso = dia.value?.recursos.find((item) => item.id === recursoId);
-    const desde = bloques.indexOf(inicio);
+    const desde = bloques.value.indexOf(inicio);
     if (!recurso || desde < 0) return [];
 
     const duraciones: number[] = [];
@@ -125,7 +126,7 @@ export function useDisponibilidad() {
   }
 
   function notebooksEnVentana(inicio: string, duracion: number) {
-    const desde = bloques.indexOf(inicio);
+    const desde = bloques.value.indexOf(inicio);
     if (!notebooks.value || desde < 0 || duracion <= 0) return 0;
 
     let menor = notebooks.value.capacidad;

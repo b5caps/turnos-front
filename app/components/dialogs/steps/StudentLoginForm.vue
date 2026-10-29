@@ -50,11 +50,6 @@ function handleSubmit() {
     return;
   }
 
-  if (cleanLegajo !== "16868" || cleanPassword !== "catalina") {
-    localError.value = "Legajo o contraseña de Sysacad incorrectos.";
-    return;
-  }
-
   update("legajo", cleanLegajo);
   update("password", cleanPassword);
   emit("login-success", { legajo: cleanLegajo, password: cleanPassword });
@@ -66,9 +61,6 @@ function handleSubmit() {
     <div :class="INTRO">
       <p :class="KICKER">Acceso de estudiante</p>
       <h2 :class="INTRO_TITULO">Ingresá a GREB</h2>
-      <p :class="INTRO_TEXTO">
-        Usá las mismas credenciales que utilizás en Sysacad.
-      </p>
     </div>
     <form class="grid gap-4" @submit.prevent="handleSubmit">
       <label :class="ETIQUETA"
