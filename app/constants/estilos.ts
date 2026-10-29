@@ -26,3 +26,24 @@ export const TARJETA =
 export const TARJETA_ACTIVA = "border-forest shadow-card";
 export const TARJETA_TEXTO = "flex flex-1 flex-col gap-1";
 export const TARJETA_FLECHA = "text-base text-faint ml-auto";
+
+// Color por estado del panel de administración.
+// "fuerte" es para las tarjetas de métrica, "suave" para los badges de la grilla.
+export type ClaveEstado =
+  "pendiente" | "activo" | "finalizado" | "cancelado" | "notebook";
+
+export const ESTADO_FUERTE: Record<ClaveEstado, string> = {
+  pendiente: "bg-estado-pendiente",
+  activo: "bg-estado-activo",
+  finalizado: "bg-estado-finalizado",
+  cancelado: "bg-estado-cancelado",
+  notebook: "bg-estado-notebook",
+};
+
+export const ESTADO_SUAVE: Record<ClaveEstado, string> = {
+  pendiente: "bg-estado-pendiente-suave text-estado-pendiente",
+  activo: "bg-estado-activo-suave text-estado-activo",
+  finalizado: "bg-estado-finalizado-suave text-estado-finalizado",
+  cancelado: "bg-estado-cancelado-suave text-estado-cancelado",
+  notebook: "bg-estado-notebook-suave text-estado-notebook",
+};

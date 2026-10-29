@@ -11,6 +11,7 @@
   --text-micro: 10px;
   --text-mini: 11px;
   --text-tiny: 13px;
+  --text-big: 20px;
 
   --color-ink: #1d2a27;
   --color-muted: #71807a;
@@ -38,6 +39,18 @@
   --color-notebook-ink: #14486f;
   --color-notebook-off: #f4f2ec;
   --color-notebook-off-ink: #8d8a80;
+
+  /* Estados del panel de administración */
+  --color-estado-pendiente: #1d4e74;
+  --color-estado-pendiente-suave: #d8e7f3;
+  --color-estado-activo: #1c6b52;
+  --color-estado-activo-suave: #d7ebe1;
+  --color-estado-finalizado: #5c6b64;
+  --color-estado-finalizado-suave: #e4e8e5;
+  --color-estado-cancelado: #9c3a28;
+  --color-estado-cancelado-suave: #f6dad2;
+  --color-estado-notebook: #b4502f;
+  --color-estado-notebook-suave: #fadfd3;
 
   --color-field-label: #53635d;
   --color-external: #fce8de;

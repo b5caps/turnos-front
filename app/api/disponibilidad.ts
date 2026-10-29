@@ -107,6 +107,13 @@ function aFilaDeNotebooks(
   };
 }
 
+// Los ids no dependen de la fecha: el back devuelve todas las notebooks
+// y la fecha solo afecta los bloques de horario que calcula para cada una.
+export async function idsDeNotebooks(fecha: string): Promise<Set<number>> {
+  const notebooks = await notebooksDelDia(fecha);
+  return new Set(notebooks.map((notebook) => notebook.id));
+}
+
 export async function notebookLibreEn(
   fecha: string,
   inicio: string,
