@@ -3,7 +3,8 @@ import { computed, onMounted, ref } from "vue";
 import GrillaTurnos from "~/components/admin/GrillaTurnos.vue";
 import TarjetaMetrica from "~/components/admin/TarjetaMetrica.vue";
 import { cerrarSesionApi, limpiarToken, obtenerToken } from "~/api/auth";
-import { BOTON_SUAVE, CAMPO } from "~/constants/estilos";
+import { BOTON, BOTON_SUAVE, CAMPO, ETIQUETA } from "~/constants/estilos";
+import { formatearFechaLarga } from "~/constants/horarios";
 import type { FiltroTurno } from "~/types/admin";
 
 definePageMeta({ middleware: "admin" });
@@ -22,7 +23,26 @@ const {
   cargar,
   filtrarPor,
   irAPagina,
+  seleccionados,
+  elegidos,
+  cancelablesVisibles,
+  paginaElegida,
+  cancelando,
+  aviso,
+  alternar,
+  alternarPagina,
+  limpiarSeleccion,
+  cancelarSeleccionados,
 } = useTurnosAdmin();
+
+const confirmando = ref(false);
+const motivo = ref("");
+
+async function confirmarCancelacion() {
+  await cancelarSeleccionados(motivo.value);
+  confirmando.value = false;
+  motivo.value = "";
+}
 
 const desde = computed(() => (pagina.value - 1) * porPagina + 1);
 const hasta = computed(() =>
@@ -52,7 +72,6 @@ async function salir() {
     const token = obtenerToken();
     if (token) await cerrarSesionApi(token);
   } catch {
-    // Si el servidor no responde, igual cerramos la sesión local.
   } finally {
     limpiarToken();
     await navigateTo("/admin/login");
@@ -181,7 +200,102 @@ onMounted(cargar);
         </button>
       </div>
       <template v-else>
-        <GrillaTurnos :turnos="visibles" />
+        <div
+          class="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white px-5 py-3"
+        >
+          <div class="flex items-center gap-3">
+            <span class="text-tiny text-muted">
+              {{
+                seleccionados.length
+                  ? `${seleccionados.length} ${seleccionados.length === 1 ? "turno elegido" : "turnos elegidos"}`
+                  : "Elegí turnos para cancelarlos"
+              }}
+            </span>
+            <button
+              v-if="seleccionados.length"
+              :class="BOTON_SUAVE"
+              type="button"
+              @click="limpiarSeleccion"
+            >
+              Limpiar
+            </button>
+          </div>
+          <button
+            :class="[
+              BOTON,
+              'bg-estado-cancelado text-white disabled:cursor-not-allowed disabled:opacity-40',
+            ]"
+            :disabled="!seleccionados.length || cancelando"
+            type="button"
+            @click="confirmando = true"
+          >
+            {{ cancelando ? "Cancelando..." : "Cancelar turnos" }}
+          </button>
+        </div>
+
+        <form
+          v-if="confirmando"
+          class="mb-3 flex flex-wrap items-end gap-3 rounded-xl border border-estado-cancelado/30 bg-estado-cancelado-suave px-5 py-4"
+          @submit.prevent="confirmarCancelacion"
+        >
+          <ul
+            class="m-0 max-h-40 w-full list-none overflow-auto rounded-lg bg-white/70 p-3 text-tiny"
+          >
+            <li
+              v-for="turno in elegidos"
+              :key="turno.id"
+              class="flex flex-wrap gap-x-2 py-0.5"
+            >
+              <span class="tabular-nums text-muted">#{{ turno.id }}</span>
+              <span class="font-semibold text-ink">{{ turno.alumno }}</span>
+              <span class="text-muted"
+                >{{ formatearFechaLarga(turno.fecha) }}, {{ turno.inicio }} a
+                {{ turno.fin }}</span
+              >
+            </li>
+          </ul>
+
+          <label :class="[ETIQUETA, 'flex-1']">
+            Motivo (opcional)
+            <input
+              v-model="motivo"
+              :class="[CAMPO, 'text-tiny']"
+              maxlength="255"
+              placeholder="Se suspendió la actividad"
+              type="text"
+            />
+          </label>
+          <button
+            :class="BOTON_SUAVE"
+            type="button"
+            @click="confirmando = false"
+          >
+            Volver
+          </button>
+          <button
+            :class="[BOTON, 'bg-estado-cancelado text-white']"
+            :disabled="cancelando"
+            type="submit"
+          >
+            Confirmar cancelación de {{ seleccionados.length }}
+          </button>
+        </form>
+
+        <p
+          v-if="aviso"
+          class="mb-3 rounded-xl bg-estado-activo-suave px-5 py-3 text-tiny text-estado-activo"
+        >
+          {{ aviso }}
+        </p>
+
+        <GrillaTurnos
+          :hay-seleccionables="cancelablesVisibles.length > 0"
+          :seleccionados="seleccionados"
+          :pagina-elegida="paginaElegida"
+          :turnos="visibles"
+          @alternar="alternar"
+          @alternar-pagina="alternarPagina"
+        />
 
         <div
           v-if="encontrados.length"

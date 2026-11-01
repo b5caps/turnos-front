@@ -1,5 +1,5 @@
 import { computed, ref, watch } from "vue";
-import { todosLosTurnos } from "~/api/admin";
+import { cancelarTurnos, todosLosTurnos } from "~/api/admin";
 import type { FiltroTurno, MetricasTurnos, Turno } from "~/types/admin";
 
 const POR_PAGINA = 10;
@@ -18,6 +18,9 @@ export function useTurnosAdmin() {
   const pagina = ref(1);
   const cargando = ref(false);
   const errorMessage = ref("");
+  const seleccionados = ref<number[]>([]);
+  const cancelando = ref(false);
+  const aviso = ref("");
 
   const metricas = computed<MetricasTurnos>(() => ({
     pendientes: turnos.value.filter((t) => t.estado === "pendiente").length,
@@ -51,9 +54,71 @@ export function useTurnosAdmin() {
     return encontrados.value.slice(desde, desde + POR_PAGINA);
   });
 
-  // Al cambiar el filtro o la búsqueda, la página actual puede dejar de existir.
+  const elegidos = computed(() =>
+    turnos.value.filter((turno) => seleccionados.value.includes(turno.id)),
+  );
+
+  const cancelablesVisibles = computed(() =>
+    visibles.value.filter((turno) => turno.cancelable),
+  );
+
+  const paginaElegida = computed(
+    () =>
+      cancelablesVisibles.value.length > 0 &&
+      cancelablesVisibles.value.every((turno) =>
+        seleccionados.value.includes(turno.id),
+      ),
+  );
+
+  function alternar(id: number) {
+    seleccionados.value = seleccionados.value.includes(id)
+      ? seleccionados.value.filter((elegido) => elegido !== id)
+      : [...seleccionados.value, id];
+  }
+
+  function limpiarSeleccion() {
+    seleccionados.value = [];
+  }
+
+  function alternarPagina() {
+    const idsVisibles = cancelablesVisibles.value.map((turno) => turno.id);
+    seleccionados.value = paginaElegida.value
+      ? seleccionados.value.filter((id) => !idsVisibles.includes(id))
+      : [...new Set([...seleccionados.value, ...idsVisibles])];
+  }
+
+  async function cancelarSeleccionados(motivo: string) {
+    if (!seleccionados.value.length) return;
+
+    cancelando.value = true;
+    errorMessage.value = "";
+    aviso.value = "";
+    try {
+      const resultados = await cancelarTurnos(seleccionados.value, motivo);
+      const fallados = resultados.filter((resultado) => !resultado.ok);
+      const logrados = resultados.length - fallados.length;
+
+      if (logrados)
+        aviso.value = `${logrados} ${logrados === 1 ? "turno cancelado" : "turnos cancelados"} correctamente.`;
+      if (fallados.length)
+        errorMessage.value = fallados
+          .map((resultado) => `#${resultado.id}: ${resultado.error}`)
+          .join(" · ");
+
+      seleccionados.value = [];
+      await cargar();
+    } finally {
+      cancelando.value = false;
+    }
+  }
+
+  watch(totalPaginas, (total) => {
+    if (pagina.value > total) pagina.value = total;
+  });
+
   watch([filtro, busqueda], () => {
     pagina.value = 1;
+    seleccionados.value = [];
   });
 
   async function cargar() {
@@ -61,7 +126,6 @@ export function useTurnosAdmin() {
     errorMessage.value = "";
     try {
       turnos.value = await todosLosTurnos();
-      pagina.value = 1;
     } catch (fallo) {
       turnos.value = [];
       errorMessage.value =
@@ -83,6 +147,16 @@ export function useTurnosAdmin() {
 
   return {
     visibles,
+    seleccionados,
+    elegidos,
+    cancelablesVisibles,
+    paginaElegida,
+    cancelando,
+    aviso,
+    alternar,
+    alternarPagina,
+    limpiarSeleccion,
+    cancelarSeleccionados,
     encontrados,
     metricas,
     filtro,

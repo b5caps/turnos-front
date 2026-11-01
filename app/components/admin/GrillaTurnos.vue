@@ -3,7 +3,16 @@ import { ESTADO_SUAVE } from "~/constants/estilos";
 import { formatearFechaLarga } from "~/constants/horarios";
 import type { EstadoTurno, Turno } from "~/types/admin";
 
-defineProps<{ turnos: Turno[] }>();
+defineProps<{
+  turnos: Turno[];
+  seleccionados: number[];
+  paginaElegida: boolean;
+  haySeleccionables: boolean;
+}>();
+const emit = defineEmits<{ alternar: [id: number]; alternarPagina: [] }>();
+
+const CASILLA =
+  "size-4 cursor-pointer accent-estado-cancelado disabled:cursor-not-allowed disabled:opacity-35";
 
 const ETIQUETA: Record<EstadoTurno, string> = {
   pendiente: "Pendiente",
@@ -27,6 +36,17 @@ const CELDA = "px-6 py-4 align-middle";
       </caption>
       <thead>
         <tr>
+          <th :class="[ENCABEZADO, 'w-12']" scope="col">
+            <span class="sr-only">Seleccionar página</span>
+            <input
+              aria-label="Seleccionar los turnos de esta página"
+              :checked="paginaElegida"
+              :class="CASILLA"
+              :disabled="!haySeleccionables"
+              type="checkbox"
+              @change="emit('alternarPagina')"
+            />
+          </th>
           <th :class="[ENCABEZADO, 'w-20']" scope="col">ID</th>
           <th :class="ENCABEZADO" scope="col">Alumno</th>
           <th :class="ENCABEZADO" scope="col">Día</th>
@@ -39,8 +59,21 @@ const CELDA = "px-6 py-4 align-middle";
         <tr
           v-for="turno in turnos"
           :key="turno.id"
-          class="border-t border-hairline transition-colors hover:bg-paper"
+          :class="[
+            'border-t border-hairline transition-colors',
+            seleccionados.includes(turno.id) ? 'bg-paper' : 'hover:bg-paper',
+          ]"
         >
+          <td :class="CELDA">
+            <input
+              :aria-label="`Seleccionar el turno de ${turno.alumno}`"
+              :checked="seleccionados.includes(turno.id)"
+              :class="CASILLA"
+              :disabled="!turno.cancelable"
+              type="checkbox"
+              @change="emit('alternar', turno.id)"
+            />
+          </td>
           <td :class="[CELDA, 'tabular-nums text-muted']">#{{ turno.id }}</td>
           <td :class="[CELDA, 'font-semibold text-ink']">
             {{ turno.alumno }}

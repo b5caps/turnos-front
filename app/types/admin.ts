@@ -10,6 +10,7 @@ export interface Turno {
   fin: string;
   estado: EstadoTurno;
   conNotebook: boolean;
+  cancelable: boolean;
 }
 
 export interface MetricasTurnos {
