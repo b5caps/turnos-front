@@ -4,7 +4,7 @@ import GrillaTurnos from "~/components/admin/GrillaTurnos.vue";
 import TarjetaMetrica from "~/components/admin/TarjetaMetrica.vue";
 import { cerrarSesionApi, limpiarToken, obtenerToken } from "~/api/auth";
 import { BOTON, BOTON_SUAVE, CAMPO, ETIQUETA } from "~/constants/estilos";
-import { formatearFechaLarga } from "~/constants/horarios";
+import { formatearFechaCorta } from "~/constants/horarios";
 import type { FiltroTurno } from "~/types/admin";
 
 definePageMeta({ middleware: "admin" });
@@ -115,26 +115,36 @@ onMounted(cargar);
       <h2 class="mt-7 mb-3 text-big font-bold tracking-wider uppercase">
         Métricas
       </h2>
-      <div class="grid grid-cols-4 gap-4 max-tablet:grid-cols-2">
+      <div
+        v-if="metricas"
+        class="grid grid-cols-5 gap-4 max-tablet:grid-cols-2"
+      >
         <TarjetaMetrica
-          etiqueta="Pendientes"
-          tono="pendiente"
-          :valor="metricas.pendientes"
+          etiqueta="Reservas de hoy"
+          tono="finalizado"
+          :valor="metricas.reservasHoy"
         />
         <TarjetaMetrica
-          etiqueta="Activos"
+          etiqueta="En curso ahora"
           tono="activo"
-          :valor="metricas.activos"
+          :valor="metricas.enCurso"
         />
         <TarjetaMetrica
-          etiqueta="Cancelados"
+          :detalle="`${metricas.salasOcupadas} de ${metricas.totalSalas} salas`"
+          etiqueta="Ocupación de salas"
+          tono="pendiente"
+          :valor="`${Math.round(metricas.ocupacionSalas)}%`"
+        />
+        <TarjetaMetrica
+          etiqueta="Canceladas hoy"
           tono="cancelado"
-          :valor="metricas.cancelados"
+          :valor="metricas.canceladas"
         />
         <TarjetaMetrica
-          etiqueta="Notebooks pedidas"
+          :detalle="`${metricas.notebooksLibres} de ${metricas.totalNotebooks} en total`"
+          etiqueta="Notebooks libres"
           tono="notebook"
-          :valor="metricas.notebooks"
+          :valor="metricas.notebooksLibres"
         />
       </div>
 
@@ -249,7 +259,7 @@ onMounted(cargar);
               <span class="tabular-nums text-muted">#{{ turno.id }}</span>
               <span class="font-semibold text-ink">{{ turno.alumno }}</span>
               <span class="text-muted"
-                >{{ formatearFechaLarga(turno.fecha) }}, {{ turno.inicio }} a
+                >{{ formatearFechaCorta(turno.fecha) }}, {{ turno.inicio }} a
                 {{ turno.fin }}</span
               >
             </li>

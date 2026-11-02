@@ -1,6 +1,6 @@
 import { computed, ref, watch } from "vue";
-import { cancelarTurnos, todosLosTurnos } from "~/api/admin";
-import type { FiltroTurno, MetricasTurnos, Turno } from "~/types/admin";
+import { cancelarTurnos, metricasDelDia, todosLosTurnos } from "~/api/admin";
+import type { FiltroTurno, MetricasDia, Turno } from "~/types/admin";
 
 const POR_PAGINA = 10;
 
@@ -22,12 +22,7 @@ export function useTurnosAdmin() {
   const cancelando = ref(false);
   const aviso = ref("");
 
-  const metricas = computed<MetricasTurnos>(() => ({
-    pendientes: turnos.value.filter((t) => t.estado === "pendiente").length,
-    activos: turnos.value.filter((t) => t.estado === "activo").length,
-    cancelados: turnos.value.filter((t) => t.estado === "cancelado").length,
-    notebooks: turnos.value.filter((t) => t.conNotebook).length,
-  }));
+  const metricas = ref<MetricasDia | null>(null);
 
   const encontrados = computed(() => {
     const porEstado =
@@ -125,7 +120,12 @@ export function useTurnosAdmin() {
     cargando.value = true;
     errorMessage.value = "";
     try {
-      turnos.value = await todosLosTurnos();
+      const [lista, resumen] = await Promise.all([
+        todosLosTurnos(),
+        metricasDelDia().catch(() => null),
+      ]);
+      turnos.value = lista;
+      metricas.value = resumen;
     } catch (fallo) {
       turnos.value = [];
       errorMessage.value =

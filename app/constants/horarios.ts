@@ -81,6 +81,13 @@ export function esDiaHabil(fecha: string) {
   return DIAS_HABILES.includes(aFechaLocal(fecha).getDay());
 }
 
+export function formatearFechaCorta(fecha: string) {
+  const referencia = aFechaLocal(fecha);
+  const dia = NOMBRES_DIA[referencia.getDay()]!.slice(0, 3);
+  const mes = NOMBRES_MES[referencia.getMonth()]!.slice(0, 3);
+  return `${dia} ${referencia.getDate()} ${mes} ${referencia.getFullYear()}`;
+}
+
 export function formatearFechaLarga(fecha: string) {
   const referencia = aFechaLocal(fecha);
   return `${NOMBRES_DIA[referencia.getDay()]} ${referencia.getDate()} de ${NOMBRES_MES[referencia.getMonth()]}`;

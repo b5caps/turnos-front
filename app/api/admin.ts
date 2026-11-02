@@ -1,10 +1,10 @@
-import { getApiReservas } from "~/utils/openapi-gen";
+import { getApiDashboard, getApiReservas } from "~/utils/openapi-gen";
 import type { GetApiReservasResponses } from "~/utils/openapi-gen";
 import { idsDeNotebooks } from "~/api/disponibilidad";
 import { obtenerToken } from "~/api/auth";
 import { cancelarReserva } from "~/api/reservas";
 import { hoyIso, partesDeIso } from "~/constants/horarios";
-import type { EstadoTurno, Turno } from "~/types/admin";
+import type { EstadoTurno, MetricasDia, Turno } from "~/types/admin";
 
 type ReservaDelBack = GetApiReservasResponses[200]["data"][number];
 
@@ -105,4 +105,25 @@ export async function cancelarTurnos(
       }
     }),
   );
+}
+
+export async function metricasDelDia(): Promise<MetricasDia> {
+  const { data, error } = await getApiDashboard({ query: {} });
+
+  if (error || !data?.data)
+    throw new Error("No pudimos cargar las métricas del día.");
+
+  const { reservasDelDia, ocupacionActual } = data.data;
+  const { salas, notebooks } = ocupacionActual.desglose;
+
+  return {
+    reservasHoy: reservasDelDia.total,
+    enCurso: reservasDelDia.enCurso,
+    canceladas: reservasDelDia.canceladas,
+    ocupacionSalas: salas.porcentaje,
+    salasOcupadas: salas.ocupadas,
+    totalSalas: salas.total,
+    notebooksLibres: notebooks.total - notebooks.ocupadas,
+    totalNotebooks: notebooks.total,
+  };
 }

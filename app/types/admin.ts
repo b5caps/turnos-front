@@ -13,9 +13,13 @@ export interface Turno {
   cancelable: boolean;
 }
 
-export interface MetricasTurnos {
-  pendientes: number;
-  activos: number;
-  cancelados: number;
-  notebooks: number;
+export interface MetricasDia {
+  reservasHoy: number;
+  enCurso: number;
+  canceladas: number;
+  ocupacionSalas: number;
+  salasOcupadas: number;
+  totalSalas: number;
+  notebooksLibres: number;
+  totalNotebooks: number;
 }

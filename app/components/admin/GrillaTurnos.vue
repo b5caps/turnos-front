@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ESTADO_SUAVE } from "~/constants/estilos";
-import { formatearFechaLarga } from "~/constants/horarios";
+import { formatearFechaCorta } from "~/constants/horarios";
 import type { EstadoTurno, Turno } from "~/types/admin";
 
 defineProps<{
@@ -79,7 +79,7 @@ const CELDA = "px-6 py-4 align-middle";
             {{ turno.alumno }}
           </td>
           <td :class="[CELDA, 'whitespace-nowrap text-ink']">
-            {{ formatearFechaLarga(turno.fecha) }}
+            {{ formatearFechaCorta(turno.fecha) }}
           </td>
           <td :class="[CELDA, 'tabular-nums whitespace-nowrap text-ink']">
             {{ turno.inicio }} a {{ turno.fin }}
