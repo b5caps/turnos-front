@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import {
   BLOQUE_MINUTOS,
   horaAMinutos,
@@ -32,6 +32,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   seleccionar: [recursoId: number, inicio: string];
 }>();
+
+const mensajeBloqueo = ref<string>("");
 
 const COLOR_SALA: Record<EstadoBloque, string> = {
   disponible: "bg-mint text-forest-deep",
@@ -75,12 +77,18 @@ const filas = computed(() =>
         desdeSeleccionado.value >= 0 &&
         indice >= desdeSeleccionado.value &&
         indice < desdeSeleccionado.value + props.bloquesSeleccionados;
+      const esBloqueado = estado === "bloqueado";
+      const motivo = esBloqueado
+        ? bloque?.motivoBloqueo || "Bloqueo por biblioteca"
+        : null;
       return {
         clave: `${recurso.id}-${inicio}`,
         recursoId: recurso.id,
         inicio,
         esNotebook,
         elegible,
+        estado,
+        motivo,
         color: dentroSeleccion
           ? "bg-notebook-ink font-bold text-white"
           : esNotebook
@@ -107,14 +115,46 @@ function contenidoDe(
   if (estado === "pasado") return { valor: "", palabra: "—" };
   if (estado === "sin_cupos")
     return { valor: "", palabra: esNotebook ? "No disponible" : "completa" };
-  if (estado === "bloqueado")
-    return { valor: "", palabra: esNotebook ? "No disponible" : "bloqueada" };
+  if (estado === "bloqueado") return { valor: "", palabra: "No disponible" };
   return { valor: "", palabra: "cerrada" };
+}
+
+function manejarClickCelda(celda: {
+  recursoId: number;
+  inicio: string;
+  elegible: boolean;
+  estado: EstadoBloque;
+  motivo: string | null;
+}) {
+  if (celda.elegible) {
+    emit("seleccionar", celda.recursoId, celda.inicio);
+    mensajeBloqueo.value = "";
+  } else if (celda.estado === "bloqueado") {
+    mensajeBloqueo.value = `Este horario no está disponible: ${celda.motivo || "Bloqueo por biblioteca"}. Elegí otro horario.`;
+  }
 }
 </script>
 
 <template>
   <div class="overflow-x-auto rounded-xl border border-line bg-white p-2">
+    <!-- Aviso al tocar o hacer clic sobre un turno no disponible -->
+    <div
+      v-if="mensajeBloqueo"
+      class="mb-3 flex items-center justify-between rounded-xl border border-coral/30 bg-conditions px-4 py-2.5 text-xs font-semibold text-coral-dark shadow-xs"
+    >
+      <div class="flex items-center gap-2">
+        <span class="size-2 rounded-full bg-danger"></span>
+        <span>{{ mensajeBloqueo }}</span>
+      </div>
+      <button
+        type="button"
+        class="cursor-pointer text-xs font-bold text-coral-dark hover:opacity-75 ml-3"
+        @click="mensajeBloqueo = ''"
+      >
+        ✕
+      </button>
+    </div>
+
     <table
       class="w-full border-separate border-spacing-0.5"
       :class="compacto ? 'text-mini' : 'text-xs max-tablet:text-mini'"
@@ -164,18 +204,30 @@ function contenidoDe(
             "
           >
             <component
-              :is="celda.elegible ? 'button' : 'div'"
+              :is="
+                celda.elegible || celda.estado === 'bloqueado'
+                  ? 'button'
+                  : 'div'
+              "
               class="flex w-full items-center justify-center gap-1 rounded-sm text-center leading-tight py-1.5 px-1 font-[inherit] transition-opacity"
               :class="[
                 celda.color,
                 celda.elegible &&
                   'cursor-pointer hover:opacity-85 hover:ring-1 hover:ring-notebook-ink',
+                celda.estado === 'bloqueado' &&
+                  'cursor-pointer hover:opacity-85',
               ]"
-              :type="celda.elegible ? 'button' : undefined"
-              @click="
-                celda.elegible &&
-                emit('seleccionar', celda.recursoId, celda.inicio)
+              :type="
+                celda.elegible || celda.estado === 'bloqueado'
+                  ? 'button'
+                  : undefined
               "
+              :title="
+                celda.estado === 'bloqueado'
+                  ? `Este horario no está disponible: ${celda.motivo || 'Bloqueo por biblioteca'}. Elegí otro horario.`
+                  : undefined
+              "
+              @click="manejarClickCelda(celda)"
             >
               <span
                 v-if="celda.valor"

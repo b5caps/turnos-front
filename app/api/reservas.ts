@@ -2,12 +2,11 @@ import {
   getApiReservas,
   patchApiReservasByIdCancelar,
   postApiReservas,
+  postApiReservasByIdConfirmar,
 } from "~/utils/openapi-gen";
 import type { GetApiReservasResponses } from "~/utils/openapi-gen";
 import { notebookLibreEn } from "~/api/disponibilidad";
-import { USAR_API } from "~/constants/api";
 import { aIsoConZona, partesDeIso } from "~/constants/horarios";
-import { cancelarEnMock, reservasDe } from "~/mocks/reservas";
 import type {
   EstadoFiltro,
   EstadoReserva,
@@ -41,17 +40,6 @@ export async function crearReserva(
   const desde = aIsoConZona(reserva.fecha, reserva.inicio);
   const hasta = aIsoConZona(reserva.fecha, reserva.fin);
 
-  if (!USAR_API) {
-    return {
-      id: 0,
-      sala: reserva.salaNombre,
-      fecha: reserva.fecha,
-      inicio: reserva.inicio,
-      fin: reserva.fin,
-      notebook: reserva.conNotebook ? "Notebook asignada" : null,
-    };
-  }
-
   const notebook = reserva.conNotebook
     ? await notebookLibreEn(reserva.fecha, reserva.inicio, reserva.fin)
     : null;
@@ -64,7 +52,8 @@ export async function crearReserva(
     ? [reserva.salaId, notebook.id]
     : [reserva.salaId];
 
-  const { data, error } = await postApiReservas({
+  // 1. Iniciar reserva creando el hold (10 minutos)
+  const { data, error, response } = await postApiReservas({
     body: {
       usuarioId: reserva.usuarioId,
       recursoIds,
@@ -73,13 +62,40 @@ export async function crearReserva(
     },
   });
 
-  if (error || !data?.data)
-    throw new Error(
-      "No pudimos confirmar la reserva. Puede que el horario ya no esté disponible.",
-    );
+  if (error || !data?.data) {
+    if (!response) {
+      throw new Error("No pudimos conectar con el servidor. Probá de nuevo.");
+    }
+    const msg =
+      (error as { message?: string })?.message ||
+      "No pudimos iniciar la reserva. Puede que el horario ya no esté disponible.";
+    throw new Error(msg);
+  }
+
+  const reservaCreada = data.data;
+
+  // 2. Confirmar la reserva pendiente (Hold) inmediatamente para que quede confirmada
+  const confirmacion = await postApiReservasByIdConfirmar({
+    path: { id: reservaCreada.id },
+  });
+
+  if (confirmacion.error || !confirmacion.data?.data) {
+    if (!confirmacion.response) {
+      throw new Error("No pudimos conectar con el servidor. Probá de nuevo.");
+    }
+    if (confirmacion.response.status === 409) {
+      throw new Error(
+        "El tiempo de 10 minutos para confirmar la reserva ha expirado. El cupo ha sido liberado.",
+      );
+    }
+    const msg =
+      (confirmacion.error as { message?: string })?.message ||
+      "No pudimos confirmar la reserva. El tiempo de espera puede haber expirado.";
+    throw new Error(msg);
+  }
 
   return {
-    id: data.data.id,
+    id: confirmacion.data.data.id,
     sala: reserva.salaNombre,
     fecha: reserva.fecha,
     inicio: reserva.inicio,
@@ -89,7 +105,12 @@ export async function crearReserva(
 }
 
 function estadoDe(reserva: ReservaDelBack): EstadoReserva {
-  if (reserva.fechaHoraCancelacion) return "cancelada";
+  if (reserva.fechaHoraCancelacion) {
+    if ((reserva as any).tipoCancelacion === "AUSENCIA") {
+      return "liberada_por_ausencia";
+    }
+    return "cancelada";
+  }
   if (new Date(reserva.fechaHoraFin) <= new Date()) return "finalizada";
   return "activa";
 }
@@ -131,25 +152,26 @@ export async function misReservas(
   usuarioId: number,
   filtro: EstadoFiltro = "todas",
 ): Promise<ReservaPropia[]> {
-  if (!USAR_API) return ordenar(reservasDe(filtro));
+  try {
+    const { data, error, response } = await getApiReservas({
+      query: { usuarioId, estado: filtro },
+    });
 
-  const { data, error } = await getApiReservas({
-    query: { usuarioId, estado: filtro },
-  });
+    if (error || !data?.data) {
+      throw new Error("No pudimos conectar con el servidor. Probá de nuevo.");
+    }
 
-  if (error || !data?.data)
-    throw new Error("No pudimos cargar tus reservas. Volvé a intentarlo.");
-
-  return ordenar(data.data.map(aReservaPropia));
+    return ordenar(data.data.map(aReservaPropia));
+  } catch (err) {
+    if (err instanceof Error && err.message) {
+      throw err;
+    }
+    throw new Error("No pudimos conectar con el servidor. Probá de nuevo.");
+  }
 }
 
 export async function cancelarReserva(id: number, motivo = "") {
   const motivoCancelacion = motivo.trim();
-
-  if (!USAR_API) {
-    cancelarEnMock(id, motivoCancelacion || null);
-    return;
-  }
 
   const { error } = await patchApiReservasByIdCancelar({
     path: { id },

@@ -128,11 +128,17 @@ function handleSubmit() {
     localError.value = "Ingresá un correo electrónico válido.";
     return;
   }
+  if (!/^\d{7,8}$/.test(cleanData.dni)) {
+    localError.value = "El DNI debe contener entre 7 y 8 dígitos numéricos.";
+    return;
+  }
+  const cleanPhoneDigits = cleanData.phone.replace(/\D/g, "");
   if (
-    !/^\d{7,15}$/.test(cleanData.dni) ||
-    !/^\+?[\d\s-]{7,20}$/.test(cleanData.phone)
+    !/^\+?[\d\s\-()]{6,20}$/.test(cleanData.phone) ||
+    cleanPhoneDigits.length < 6 ||
+    cleanPhoneDigits.length > 15
   ) {
-    localError.value = "Ingresá un DNI y un celular válidos.";
+    localError.value = "El teléfono debe contener entre 6 y 15 dígitos.";
     return;
   }
   if (cleanData.password.length < 8) {
@@ -187,6 +193,7 @@ function handleSubmit() {
           v-model="email"
           autocomplete="email"
           :class="CAMPO"
+          maxlength="254"
           placeholder="nombre@gmail.com"
           required
           type="email"
@@ -196,6 +203,7 @@ function handleSubmit() {
           v-model="password"
           autocomplete="current-password"
           :class="CAMPO"
+          maxlength="72"
           placeholder="••••••••••••"
           required
           type="password"
@@ -224,6 +232,7 @@ function handleSubmit() {
           v-model="firstName"
           autocomplete="given-name"
           :class="CAMPO"
+          maxlength="100"
           placeholder="Ej: Catalina"
           required
       /></label>
@@ -232,14 +241,17 @@ function handleSubmit() {
           v-model="lastName"
           autocomplete="family-name"
           :class="CAMPO"
+          maxlength="100"
           placeholder="Ej: Cavallo"
           required
       /></label>
       <label :class="ETIQUETA"
-        >DNI / Pasaporte *<input
+        >DNI *<input
           v-model="dni"
           :class="CAMPO"
           inputmode="numeric"
+          maxlength="8"
+          minlength="7"
           placeholder="Ej: 41289650"
           required
       /></label>
@@ -249,6 +261,7 @@ function handleSubmit() {
           autocomplete="tel"
           :class="CAMPO"
           inputmode="tel"
+          maxlength="20"
           placeholder="Ej: 3564 521890"
           required
       /></label>
@@ -256,6 +269,7 @@ function handleSubmit() {
         >Ciudad<input
           v-model="localidad"
           :class="CAMPO"
+          maxlength="120"
           placeholder="Ej: San Francisco"
           required
       /></label>
@@ -263,6 +277,7 @@ function handleSubmit() {
         >Provincia<input
           v-model="provincia"
           :class="CAMPO"
+          maxlength="120"
           placeholder="Ej: Córdoba"
           required
       /></label>
@@ -271,6 +286,7 @@ function handleSubmit() {
           v-model="email"
           autocomplete="email"
           :class="CAMPO"
+          maxlength="254"
           placeholder="nombre@gmail.com"
           required
           type="email"
@@ -280,6 +296,7 @@ function handleSubmit() {
           v-model="password"
           autocomplete="new-password"
           :class="CAMPO"
+          maxlength="72"
           minlength="8"
           placeholder="••••••••••••"
           required

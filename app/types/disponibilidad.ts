@@ -7,6 +7,7 @@ export interface BloqueDisponibilidad {
   cuposLibres: number;
   disponible: boolean;
   motivoNoDisponible: MotivoNoDisponible | null;
+  motivoBloqueo?: string | null;
 }
 
 export interface RecursoDisponibilidad {

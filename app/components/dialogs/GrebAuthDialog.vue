@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import ExternalRegisterForm from "~/components/dialogs/steps/ExternalRegisterForm.vue";
 import ResourceBookingForm from "~/components/dialogs/steps/ResourceBookingForm.vue";
 import StudentLoginForm from "~/components/dialogs/steps/StudentLoginForm.vue";
 import UserTypeStep from "~/components/dialogs/steps/UserTypeStep.vue";
 
+const route = useRoute();
 const {
   step,
   userType,
@@ -27,6 +28,13 @@ const {
 const isBookingCompleted = computed(() => Boolean(bookingCompleted.value));
 const bookingError = computed(() => errorMessage.value || "");
 
+onMounted(() => {
+  if (route.query.error === "sesion_vencida") {
+    errorMessage.value =
+      "Tu sesión ha vencido. Por favor, volvé a iniciar sesión.";
+  }
+});
+
 function updateStudent(value: typeof student) {
   Object.assign(student, value);
 }
@@ -48,7 +56,7 @@ async function handleLogout() {
 }
 
 if (!isAuthenticated.value) {
-  resetFlow();
+  resetFlow(false);
 }
 </script>
 
@@ -214,6 +222,12 @@ if (!isAuthenticated.value) {
           </aside>
 
           <div class="flex w-full flex-col justify-center p-10 max-tablet:p-6">
+            <p
+              v-if="errorMessage && step === 1"
+              class="mb-4 rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs font-medium text-danger"
+            >
+              {{ errorMessage }}
+            </p>
             <div :key="`step-wrapper-${step}`">
               <UserTypeStep
                 v-if="step === 1"

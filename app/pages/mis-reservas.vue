@@ -146,22 +146,29 @@ onMounted(cargar);
             {{ aviso }}
           </p>
 
-          <p v-if="cargando" class="py-8 text-center text-xs text-muted">
-            Cargando tus reservas…
-          </p>
-
           <div
-            v-else-if="errorMessage"
-            class="flex flex-col items-center gap-2.5 py-8 text-center text-xs text-danger"
+            v-if="errorMessage"
+            class="mb-4 flex items-center justify-between rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs font-medium text-danger"
           >
             <p class="m-0">{{ errorMessage }}</p>
-            <button :class="BOTON_SUAVE" type="button" @click="cargar">
+            <button
+              :class="[BOTON_SUAVE, 'ml-2 shrink-0']"
+              type="button"
+              @click="cargar"
+            >
               Reintentar
             </button>
           </div>
 
+          <p
+            v-if="cargando && !reservas.length"
+            class="py-8 text-center text-xs text-muted"
+          >
+            Cargando tus reservas…
+          </p>
+
           <div
-            v-else-if="!reservas.length"
+            v-else-if="!cargando && !reservas.length && !errorMessage"
             class="flex flex-col items-center gap-3 py-12 text-center"
           >
             <p class="m-0 text-xs text-muted">
@@ -175,7 +182,7 @@ onMounted(cargar);
             </NuxtLink>
           </div>
 
-          <div v-else class="flex flex-col gap-3.5">
+          <div v-else-if="reservas.length" class="flex flex-col gap-3.5">
             <TarjetaReserva
               v-for="reserva in reservas"
               :key="reserva.id"

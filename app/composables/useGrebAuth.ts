@@ -3,10 +3,12 @@ import {
   cerrarSesionApi,
   iniciarSesionApi,
   limpiarToken,
+  limpiarUsuarioGuardado,
   limpiarUsuarioRol,
   obtenerToken,
   obtenerUsuarioRol,
   registrarApi,
+  validarSesionApi,
 } from "~/api/auth";
 import type { UsuarioAutenticado } from "~/api/auth";
 import { crearReserva } from "~/api/reservas";
@@ -27,6 +29,9 @@ declare module "~/types" {
     mode?: "login" | "register";
   }
 }
+
+let sesionValidada = false;
+let validacionEnCurso: Promise<UsuarioAutenticado | null> | null = null;
 
 export function useGrebAuth() {
   const step = ref<DialogStep>(1);
@@ -52,33 +57,54 @@ export function useGrebAuth() {
     () => null,
   );
 
-  function restaurarSesion() {
+  async function restaurarSesion() {
     const token = obtenerToken();
-    if (token) {
+    if (!token) {
+      sesionValidada = false;
+      resetFlow(false);
+      return;
+    }
+
+    if (sesionValidada && isAuthenticated.value) {
+      return;
+    }
+
+    if (!validacionEnCurso) {
+      validacionEnCurso = validarSesionApi(token).finally(() => {
+        validacionEnCurso = null;
+      });
+    }
+
+    try {
+      const usuarioValido = await validacionEnCurso;
+      if (!usuarioValido) {
+        sesionValidada = false;
+        limpiarToken();
+        limpiarUsuarioRol();
+        limpiarUsuarioGuardado();
+        resetFlow(false);
+        errorMessage.value =
+          "Tu sesión ha vencido. Por favor, volvé a iniciar sesión.";
+        return;
+      }
+
+      sesionValidada = true;
+      usuario.value = usuarioValido;
       isAuthenticated.value = true;
+      const rol =
+        obtenerUsuarioRol() ||
+        (usuarioValido.rol === "UTN" ? "student" : "external");
+      authenticatedUser.value = rol;
+      userType.value = rol;
       step.value = 3;
-      const rol = obtenerUsuarioRol();
-      if (rol) {
-        authenticatedUser.value = rol;
-        userType.value = rol;
-      }
-      if (!usuario.value) {
-        try {
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          const id = Number(payload.sub);
-          if (id) {
-            usuario.value = {
-              id,
-              rol: payload.rol,
-              nombre: "",
-              apellido: "",
-              email: "",
-            };
-          }
-        } catch {
-          // Si el token no tiene payload decodificable, continuar sin bloquear
-        }
-      }
+    } catch {
+      sesionValidada = false;
+      limpiarToken();
+      limpiarUsuarioRol();
+      limpiarUsuarioGuardado();
+      resetFlow(false);
+      errorMessage.value =
+        "Tu sesión ha vencido. Por favor, volvé a iniciar sesión.";
     }
   }
 
@@ -193,6 +219,7 @@ export function useGrebAuth() {
     isSubmitting.value = true;
     try {
       const data = await iniciarSesionApi(identificador, pass);
+      sesionValidada = true;
       usuario.value = data.usuario;
       isAuthenticated.value = true;
       authenticatedUser.value = (
@@ -278,6 +305,7 @@ export function useGrebAuth() {
           provincia: external.provincia.trim(),
           organizacion: "Particular",
         });
+        sesionValidada = true;
         usuario.value = registrado.usuario;
         isAuthenticated.value = true;
         authenticatedUser.value = "external";
@@ -305,8 +333,10 @@ export function useGrebAuth() {
           ? fallo.message
           : "No pudimos cerrar la sesión en el servidor.";
     } finally {
+      sesionValidada = false;
       limpiarToken();
       limpiarUsuarioRol();
+      limpiarUsuarioGuardado();
       resetFlow(false);
       isSubmitting.value = false;
       await navigateTo("/");

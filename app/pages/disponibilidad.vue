@@ -5,6 +5,8 @@ import FiltroSalas from "~/components/disponibilidad/FiltroSalas.vue";
 import GrillaDisponibilidad from "~/components/disponibilidad/GrillaDisponibilidad.vue";
 import ReferenciaEstados from "~/components/disponibilidad/ReferenciaEstados.vue";
 import SelectorFecha from "~/components/disponibilidad/SelectorFecha.vue";
+import { POLLING_INTERVALOS } from "~/constants/polling";
+import { usePolling } from "~/composables/usePolling";
 
 const {
   bloques,
@@ -13,6 +15,8 @@ const {
   errorMessage,
   abierta,
   esHoy,
+  feriadoActual,
+  motivoCierreDia,
   salas,
   salaSeleccionada,
   recursosVisibles,
@@ -25,6 +29,12 @@ const {
 } = useDisponibilidad();
 
 const { isAuthenticated, isSubmitting, logout } = useGrebAuth();
+
+// Polling de disponibilidad (20 segundos)
+usePolling(() => cargar(true), {
+  intervaloMs: POLLING_INTERVALOS.DISPONIBILIDAD_SALAS,
+  pausarSiOculta: true,
+});
 
 onMounted(cargar);
 </script>
@@ -133,9 +143,11 @@ onMounted(cargar);
 
         <div class="flex flex-col gap-5">
           <SelectorFecha
+            :bloquear-pasadas="true"
             :deshabilitado="cargando"
             :es-hoy="esHoy"
             :fecha="fecha"
+            :feriado="feriadoActual"
             @hoy="irAHoy"
             @mover="moverDias"
             @update:fecha="irAFecha"
@@ -152,6 +164,8 @@ onMounted(cargar);
             :abierta="abierta"
             :cargando="cargando"
             :error-message="errorMessage"
+            :feriado="feriadoActual"
+            :motivo-cierre="motivoCierreDia"
             :sin-bloques="!bloques.length"
             @reintentar="cargar"
           >

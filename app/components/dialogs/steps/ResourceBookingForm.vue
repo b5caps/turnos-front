@@ -5,6 +5,8 @@ import FiltroSalas from "~/components/disponibilidad/FiltroSalas.vue";
 import GrillaDisponibilidad from "~/components/disponibilidad/GrillaDisponibilidad.vue";
 import SelectorFecha from "~/components/disponibilidad/SelectorFecha.vue";
 import { useGrebAuth } from "~/composables/useGrebAuth";
+import { POLLING_INTERVALOS } from "~/constants/polling";
+import { usePolling } from "~/composables/usePolling";
 import {
   ACCIONES,
   BOTON_PRIMARIO,
@@ -45,6 +47,8 @@ const {
   errorMessage,
   abierta,
   esHoy,
+  feriadoActual,
+  motivoCierreDia,
   salas,
   salaSeleccionada,
   recursosVisibles,
@@ -60,6 +64,7 @@ const {
 
 const seleccion = ref<{ recursoId: number; inicio: string } | null>(null);
 const duracion = ref(0);
+const avisoHorarioNoDisponible = ref("");
 
 const duraciones = computed(() =>
   seleccion.value
@@ -82,8 +87,9 @@ const notebooksLibres = computed(() =>
 );
 const listo = computed(() => Boolean(salaElegida.value && duracion.value));
 
-// Temporizador
-const segundosRestantes = ref(300);
+// Temporizador (Hold de 10 minutos según backend)
+const DURACION_HOLD_SEGUNDOS = 600;
+const segundosRestantes = ref(DURACION_HOLD_SEGUNDOS);
 const haExpirado = ref(false);
 let timerId: ReturnType<typeof setInterval> | null = null;
 
@@ -106,9 +112,9 @@ function detenerTemporizador() {
 
 function iniciarTemporizador() {
   detenerTemporizador();
-  segundosRestantes.value = 300;
+  segundosRestantes.value = DURACION_HOLD_SEGUNDOS;
   haExpirado.value = false;
-  bookingExpiresAt.value = Date.now() + 300 * 1000;
+  bookingExpiresAt.value = Date.now() + DURACION_HOLD_SEGUNDOS * 1000;
   timerId = setInterval(() => {
     segundosRestantes.value -= 1;
     if (segundosRestantes.value <= 0) {
@@ -123,6 +129,7 @@ function iniciarTemporizador() {
 }
 
 function volverAtras() {
+  avisoHorarioNoDisponible.value = "";
   detenerTemporizador();
   bookingExpiresAt.value = null;
   emit("back");
@@ -131,9 +138,10 @@ function volverAtras() {
 function iniciarNuevaReserva() {
   seleccion.value = null;
   duracion.value = 0;
+  avisoHorarioNoDisponible.value = "";
   bookingCompleted.value = false;
   detenerTemporizador();
-  segundosRestantes.value = 300;
+  segundosRestantes.value = DURACION_HOLD_SEGUNDOS;
   haExpirado.value = false;
   bookingExpiresAt.value = null;
   emit("update:modelValue", {
@@ -154,6 +162,8 @@ const TICK =
   "flex cursor-pointer flex-row items-start gap-2.5 text-xs font-semibold text-ink";
 
 function elegir(recursoId: number, inicio: string) {
+  avisoHorarioNoDisponible.value = "";
+  haExpirado.value = false;
   seleccion.value = { recursoId, inicio };
   duracion.value = duraciones.value[0] ?? 0;
   iniciarTemporizador();
@@ -183,11 +193,52 @@ function sincronizar() {
   });
 }
 
+// Polling de disponibilidad (20 segundos) mientras la reserva esté visible
+async function refrescarDisponibilidad() {
+  await cargar(true);
+
+  // Requisito 1: si la disponibilidad cambia mientras el alumno tiene un horario seleccionado y ya no está libre
+  if (seleccion.value) {
+    const sala = salas.value.find((s) => s.id === seleccion.value?.recursoId);
+    const bloque = sala?.bloques.find(
+      (b) => b.inicio === seleccion.value?.inicio,
+    );
+
+    const sigueDisponible = Boolean(
+      bloque && bloque.disponible && estadoDe(bloque) === "disponible",
+    );
+    const duracionesDisponibles = seleccion.value
+      ? duracionesPosibles(seleccion.value.recursoId, seleccion.value.inicio)
+      : [];
+    const duracionValida =
+      duracion.value === 0 || duracionesDisponibles.includes(duracion.value);
+
+    if (!sigueDisponible || !duracionValida) {
+      seleccion.value = null;
+      duracion.value = 0;
+      detenerTemporizador();
+      bookingExpiresAt.value = null;
+      sincronizar();
+      avisoHorarioNoDisponible.value =
+        "Ese horario ya no está disponible. Elegí otro.";
+    }
+    // Requisito 2: si sigue libre, NO reiniciar ni cancelar la cuenta regresiva del hold
+  }
+}
+
+usePolling(refrescarDisponibilidad, {
+  intervaloMs: POLLING_INTERVALOS.DISPONIBILIDAD_SALAS,
+  pausarSiOculta: true,
+  activo: () => !props.completed && !bookingCompleted.value,
+  accionEnCurso: () => Boolean(props.loading),
+});
+
 watch(fecha, () => {
   seleccion.value = null;
   duracion.value = 0;
+  avisoHorarioNoDisponible.value = "";
   detenerTemporizador();
-  segundosRestantes.value = 300;
+  segundosRestantes.value = DURACION_HOLD_SEGUNDOS;
   haExpirado.value = false;
   bookingExpiresAt.value = null;
 });
@@ -355,12 +406,31 @@ onUnmounted(() => {
           <line x1="12" x2="12.01" y1="16" y2="16" />
         </svg>
         <span>
-          El tiempo para completar tu reserva ha vencido. Por favor, seleccioná
-          nuevamente un horario.
+          El tiempo de 10 minutos para completar tu reserva ha vencido. El cupo
+          ha sido liberado. Por favor, seleccioná nuevamente un horario.
         </span>
       </div>
 
+      <div
+        v-if="avisoHorarioNoDisponible"
+        class="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs font-medium text-danger"
+      >
+        <svg
+          class="size-4 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" x2="12" y1="8" y2="12" />
+          <line x1="12" x2="12.01" y1="16" y2="16" />
+        </svg>
+        <span>{{ avisoHorarioNoDisponible }}</span>
+      </div>
+
       <SelectorFecha
+        :bloquear-pasadas="true"
         :deshabilitado="cargando"
         :es-hoy="esHoy"
         :fecha="fecha"
@@ -380,6 +450,8 @@ onUnmounted(() => {
         :abierta="abierta"
         :cargando="cargando"
         :error-message="errorMessage"
+        :feriado="feriadoActual"
+        :motivo-cierre="motivoCierreDia"
         :sin-bloques="!bloques.length"
         @reintentar="cargar"
       >

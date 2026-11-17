@@ -1,7 +1,11 @@
 import { getApiDashboard, getApiReservas } from "~/utils/openapi-gen";
 import type { GetApiReservasResponses } from "~/utils/openapi-gen";
 import { idsDeNotebooks } from "~/api/disponibilidad";
-import { obtenerToken } from "~/api/auth";
+import {
+  decodificarPayloadJwt,
+  obtenerToken,
+  obtenerUsuarioGuardado,
+} from "~/api/auth";
 import { cancelarReserva } from "~/api/reservas";
 import { hoyIso, partesDeIso } from "~/constants/horarios";
 import type { EstadoTurno, MetricasDia, Turno } from "~/types/admin";
@@ -12,8 +16,16 @@ function pareceNotebook(nombre: string) {
   return /notebook/i.test(nombre);
 }
 
-function estadoDe(desde: Date, hasta: Date, cancelado: boolean): EstadoTurno {
-  if (cancelado) return "cancelado";
+function estadoDe(
+  desde: Date,
+  hasta: Date,
+  cancelado: boolean,
+  tipoCancelacion?: string | null,
+): EstadoTurno {
+  if (cancelado) {
+    if (tipoCancelacion === "AUSENCIA") return "liberada_por_ausencia";
+    return "cancelado";
+  }
   const ahora = new Date();
   if (hasta <= ahora) return "finalizado";
   if (desde <= ahora) return "activo";
@@ -34,6 +46,7 @@ function aTurno(
     new Date(reserva.fechaHoraInicio),
     new Date(reserva.fechaHoraFin),
     Boolean(reserva.fechaHoraCancelacion),
+    (reserva as any).tipoCancelacion,
   );
 
   return {
@@ -59,12 +72,15 @@ function ordenar(turnos: Turno[]) {
 export function rolDeLaSesion(): string | null {
   const token = obtenerToken();
   if (!token) return null;
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1] ?? ""));
-    return typeof payload.rol === "string" ? payload.rol : null;
-  } catch {
-    return null;
+  const payload = decodificarPayloadJwt(token);
+  if (payload && typeof payload.rol === "string") {
+    return payload.rol;
   }
+  const guardado = obtenerUsuarioGuardado();
+  if (guardado && typeof guardado.rol === "string") {
+    return guardado.rol;
+  }
+  return null;
 }
 
 export async function todosLosTurnos(): Promise<Turno[]> {

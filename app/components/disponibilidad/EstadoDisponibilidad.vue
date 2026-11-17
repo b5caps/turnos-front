@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { AVISO, BOTON_SUAVE } from "~/constants/estilos";
 import { ETIQUETA_HORARIO } from "~/constants/horarios";
+import type { Feriado } from "~/types/feriados";
 
 defineProps<{
   cargando: boolean;
   errorMessage: string;
   abierta: boolean;
   sinBloques?: boolean;
+  feriado?: Feriado | null;
+  motivoCierre?: string | null;
 }>();
 const emit = defineEmits<{ reintentar: [] }>();
 </script>
@@ -22,8 +25,17 @@ const emit = defineEmits<{ reintentar: [] }>();
       Reintentar
     </button>
   </div>
+  <p v-else-if="feriado" :class="AVISO">
+    Cerrado por feriado:
+    <strong class="text-ink">{{ feriado.nombre }}</strong
+    >.
+  </p>
+  <p v-else-if="motivoCierre" :class="AVISO">
+    Cerrado: <strong class="text-ink">{{ motivoCierre }}</strong
+    >.
+  </p>
   <p v-else-if="!abierta" :class="AVISO">
-    La biblioteca no abre este día. {{ ETIQUETA_HORARIO }}.
+    Cerrado. La biblioteca no abre este día. {{ ETIQUETA_HORARIO }}.
   </p>
   <p v-else-if="sinBloques" :class="AVISO">
     Por hoy la biblioteca ya cerró. Mirá los próximos días.

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import AdminHeader from "~/components/admin/AdminHeader.vue";
 import GrillaTurnos from "~/components/admin/GrillaTurnos.vue";
 import TarjetaMetrica from "~/components/admin/TarjetaMetrica.vue";
-import { cerrarSesionApi, limpiarToken, obtenerToken } from "~/api/auth";
 import { BOTON, BOTON_SUAVE, CAMPO, ETIQUETA } from "~/constants/estilos";
 import { formatearFechaCorta } from "~/constants/horarios";
 import type { FiltroTurno } from "~/types/admin";
@@ -33,6 +33,7 @@ const {
   alternarPagina,
   limpiarSeleccion,
   cancelarSeleccionados,
+  horaFormateada,
 } = useTurnosAdmin();
 
 const confirmando = ref(false);
@@ -49,11 +50,9 @@ const hasta = computed(() =>
   Math.min(pagina.value * porPagina, encontrados.value.length),
 );
 
-const saliendo = ref(false);
-
 const FILTROS: { valor: FiltroTurno; etiqueta: string }[] = [
   { valor: "todos", etiqueta: "Todos" },
-  { valor: "pendiente", etiqueta: "Pendientes" },
+  { valor: "pendiente", etiqueta: "Programados" },
   { valor: "activo", etiqueta: "Activos" },
   { valor: "finalizado", etiqueta: "Finalizados" },
   { valor: "cancelado", etiqueta: "Cancelados" },
@@ -66,55 +65,24 @@ const CHIP_INACTIVO = "border-line bg-white text-muted hover:text-ink";
 const PAGINA =
   "cursor-pointer rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-semibold text-ink transition-colors not-disabled:hover:border-forest disabled:cursor-not-allowed disabled:opacity-40";
 
-async function salir() {
-  saliendo.value = true;
-  try {
-    const token = obtenerToken();
-    if (token) await cerrarSesionApi(token);
-  } catch {
-  } finally {
-    limpiarToken();
-    await navigateTo("/admin/login");
-  }
-}
-
 onMounted(cargar);
 </script>
 
 <template>
   <main class="min-h-screen bg-paper font-sans text-ink">
-    <header
-      class="sticky top-0 z-50 flex items-center justify-between border-b border-line bg-white px-8 py-3.5 max-tablet:px-5"
-    >
-      <div class="flex items-center gap-4">
-        <img
-          alt="UTN GREB"
-          class="h-8 w-auto object-contain"
-          src="/Logo_GREB.jpg"
-        />
-        <span
-          class="rounded-full bg-notebook px-2.5 py-1 text-tiny font-bold tracking-wider text-notebook-ink uppercase"
-          >Administración</span
-        >
-      </div>
-      <button
-        :class="BOTON_SUAVE"
-        :disabled="saliendo"
-        type="button"
-        @click="salir"
-      >
-        {{ saliendo ? "Cerrando sesión..." : "Cerrar sesión" }}
-      </button>
-    </header>
+    <AdminHeader pagina-actual="turnos" />
 
     <div
       class="mx-auto w-[min(100%,1180px)] px-8 py-8 max-tablet:px-5 max-tablet:py-6"
     >
       <h1 class="m-0 text-4xl font-bold tracking-tight">Turnos</h1>
 
-      <h2 class="mt-7 mb-3 text-big font-bold tracking-wider uppercase">
-        Métricas
-      </h2>
+      <div class="mt-7 mb-3 flex items-baseline justify-between gap-3">
+        <h2 class="text-big font-bold tracking-wider uppercase">Métricas</h2>
+        <span v-if="horaFormateada" class="text-xs font-normal text-muted">
+          Actualizado {{ horaFormateada }}
+        </span>
+      </div>
       <div
         v-if="metricas"
         class="grid grid-cols-5 gap-4 max-tablet:grid-cols-2"
@@ -151,6 +119,20 @@ onMounted(cargar);
       <h2 class="mt-8 mb-3 text-big font-bold tracking-wider uppercase">
         Grilla de turnos
       </h2>
+
+      <div
+        v-if="aviso"
+        class="mb-4 flex items-center justify-between rounded-xl border border-forest/20 bg-mint px-5 py-3 text-xs font-semibold text-forest-deep"
+      >
+        <span>{{ aviso }}</span>
+        <button
+          type="button"
+          class="cursor-pointer text-xs font-bold text-forest-deep underline hover:opacity-80"
+          @click="aviso = ''"
+        >
+          Cerrar
+        </button>
+      </div>
 
       <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
         <label class="relative w-72 max-tablet:w-full">
@@ -290,13 +272,6 @@ onMounted(cargar);
             Confirmar cancelación de {{ seleccionados.length }}
           </button>
         </form>
-
-        <p
-          v-if="aviso"
-          class="mb-3 rounded-xl bg-estado-activo-suave px-5 py-3 text-tiny text-estado-activo"
-        >
-          {{ aviso }}
-        </p>
 
         <GrillaTurnos
           :hay-seleccionables="cancelablesVisibles.length > 0"

@@ -1,5 +1,7 @@
 import { computed, ref, watch } from "vue";
 import { cancelarTurnos, metricasDelDia, todosLosTurnos } from "~/api/admin";
+import { POLLING_INTERVALOS } from "~/constants/polling";
+import { usePolling } from "~/composables/usePolling";
 import type { FiltroTurno, MetricasDia, Turno } from "~/types/admin";
 
 const POR_PAGINA = 10;
@@ -28,7 +30,13 @@ export function useTurnosAdmin() {
     const porEstado =
       filtro.value === "todos"
         ? turnos.value
-        : turnos.value.filter((turno) => turno.estado === filtro.value);
+        : filtro.value === "cancelado"
+          ? turnos.value.filter(
+              (turno) =>
+                turno.estado === "cancelado" ||
+                turno.estado === "liberada_por_ausencia",
+            )
+          : turnos.value.filter((turno) => turno.estado === filtro.value);
 
     const texto = normalizar(busqueda.value.trim());
     if (!texto) return porEstado;
@@ -93,15 +101,15 @@ export function useTurnosAdmin() {
       const fallados = resultados.filter((resultado) => !resultado.ok);
       const logrados = resultados.length - fallados.length;
 
+      seleccionados.value = [];
+      await cargar();
+
       if (logrados)
-        aviso.value = `${logrados} ${logrados === 1 ? "turno cancelado" : "turnos cancelados"} correctamente.`;
+        aviso.value = `${logrados} ${logrados === 1 ? "turno cancelado" : "turnos cancelados"} con éxito.`;
       if (fallados.length)
         errorMessage.value = fallados
           .map((resultado) => `#${resultado.id}: ${resultado.error}`)
           .join(" · ");
-
-      seleccionados.value = [];
-      await cargar();
     } finally {
       cancelando.value = false;
     }
@@ -116,26 +124,82 @@ export function useTurnosAdmin() {
     seleccionados.value = [];
   });
 
-  async function cargar() {
-    cargando.value = true;
-    errorMessage.value = "";
+  async function cargar(silencioso = false) {
+    if (!silencioso) {
+      cargando.value = true;
+      errorMessage.value = "";
+    }
     try {
       const [lista, resumen] = await Promise.all([
         todosLosTurnos(),
         metricasDelDia().catch(() => null),
       ]);
+
+      // Requisito 3: Preservar seleccionados o deseleccionar si cambiaron de estado / ya no son cancelables
+      if (seleccionados.value.length > 0) {
+        let huboDeseleccion = false;
+        const nuevosSeleccionados: number[] = [];
+
+        for (const id of seleccionados.value) {
+          const turnoNuevo = lista.find((t) => t.id === id);
+          const turnoViejo = turnos.value.find((t) => t.id === id);
+
+          if (
+            !turnoNuevo ||
+            !turnoNuevo.cancelable ||
+            (turnoViejo && turnoViejo.estado !== turnoNuevo.estado)
+          ) {
+            huboDeseleccion = true;
+          } else {
+            nuevosSeleccionados.push(id);
+          }
+        }
+
+        if (huboDeseleccion) {
+          seleccionados.value = nuevosSeleccionados;
+          aviso.value =
+            "Algunas reservas seleccionadas cambiaron de estado y fueron deseleccionadas.";
+        }
+      }
+
       turnos.value = lista;
-      metricas.value = resumen;
+      if (resumen) {
+        metricas.value = resumen;
+      }
+      if (silencioso) {
+        errorMessage.value = "";
+      }
     } catch (fallo) {
-      turnos.value = [];
-      errorMessage.value =
-        fallo instanceof Error
-          ? fallo.message
-          : "No pudimos cargar los turnos.";
+      if (!silencioso) {
+        turnos.value = [];
+        errorMessage.value =
+          fallo instanceof Error
+            ? fallo.message
+            : "No pudimos cargar los turnos.";
+      } else {
+        const err = fallo as {
+          status?: number;
+          statusCode?: number;
+          response?: { status?: number };
+        };
+        const status = err?.status ?? err?.statusCode ?? err?.response?.status;
+        if (status === 401) throw fallo;
+        // F2: Mantener datos anteriores y mostrar aviso discreto sin borrar pantalla
+        aviso.value = "No pudimos conectar con el servidor. Probá de nuevo.";
+      }
     } finally {
-      cargando.value = false;
+      if (!silencioso) {
+        cargando.value = false;
+      }
     }
   }
+
+  // Polling para panel de turnos y KPI (30 segundos)
+  const polling = usePolling(() => cargar(true), {
+    intervaloMs: POLLING_INTERVALOS.ADMIN_TURNOS,
+    pausarSiOculta: true,
+    accionEnCurso: () => cancelando.value,
+  });
 
   function filtrarPor(nuevo: FiltroTurno) {
     filtro.value = nuevo;
@@ -169,5 +233,7 @@ export function useTurnosAdmin() {
     cargar,
     filtrarPor,
     irAPagina,
+    horaFormateada: polling.horaFormateada,
+    refrescar: polling.refrescar,
   };
 }

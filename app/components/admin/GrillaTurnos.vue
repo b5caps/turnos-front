@@ -15,10 +15,11 @@ const CASILLA =
   "size-4 cursor-pointer accent-estado-cancelado disabled:cursor-not-allowed disabled:opacity-35";
 
 const ETIQUETA: Record<EstadoTurno, string> = {
-  pendiente: "Pendiente",
+  pendiente: "Programado",
   activo: "Activo",
   finalizado: "Finalizado",
   cancelado: "Cancelado",
+  liberada_por_ausencia: "Liberada por ausencia",
 };
 
 const ENCABEZADO =

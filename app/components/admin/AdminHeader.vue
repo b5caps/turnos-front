@@ -1,0 +1,190 @@
+<script setup lang="ts">
+import { ref } from "vue";
+import { cerrarSesionApi, limpiarToken, obtenerToken } from "~/api/auth";
+
+defineProps<{
+  paginaActual: "turnos" | "calendario" | "qr";
+}>();
+
+const saliendo = ref(false);
+
+async function salir() {
+  saliendo.value = true;
+  try {
+    const token = obtenerToken();
+    if (token) await cerrarSesionApi(token);
+  } catch {
+  } finally {
+    limpiarToken();
+    await navigateTo("/admin/login");
+  }
+}
+</script>
+
+<template>
+  <header
+    class="sticky top-0 z-50 flex items-center justify-between border-b border-line bg-white px-8 py-3.5 max-tablet:px-5"
+  >
+    <div class="flex items-center gap-4">
+      <img
+        alt="UTN GREB"
+        class="h-8 w-auto object-contain"
+        src="/Logo_GREB.jpg"
+      />
+      <span
+        class="rounded-full bg-notebook px-2.5 py-1 text-tiny font-bold tracking-wider text-notebook-ink uppercase"
+      >
+        Administración
+      </span>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <!-- Turnos -->
+      <span
+        v-if="paginaActual === 'turnos'"
+        class="inline-flex items-center gap-1.5 rounded-full bg-notebook-ink px-4 py-1.5 text-xs font-semibold text-white shadow-xs"
+      >
+        <svg
+          class="size-3.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <rect height="18" rx="2" ry="2" width="18" x="3" y="4" />
+          <line x1="16" x2="16" y1="2" y2="6" />
+          <line x1="8" x2="8" y1="2" y2="6" />
+          <line x1="3" x2="21" y1="10" y2="10" />
+        </svg>
+        <span>Turnos</span>
+      </span>
+
+      <NuxtLink
+        v-else
+        to="/admin"
+        class="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-ink no-underline"
+      >
+        <svg
+          class="size-3.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <rect height="18" rx="2" ry="2" width="18" x="3" y="4" />
+          <line x1="16" x2="16" y1="2" y2="6" />
+          <line x1="8" x2="8" y1="2" y2="6" />
+          <line x1="3" x2="21" y1="10" y2="10" />
+        </svg>
+        <span>Turnos</span>
+      </NuxtLink>
+
+      <!-- Configuración de fechas / Calendario -->
+      <span
+        v-if="paginaActual === 'calendario'"
+        class="inline-flex items-center gap-1.5 rounded-full bg-notebook-ink px-4 py-1.5 text-xs font-semibold text-white shadow-xs"
+      >
+        <svg
+          class="size-3.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"
+          />
+          <path d="m14 14 2 2 4-4" />
+        </svg>
+        <span>Configuración de fechas</span>
+      </span>
+
+      <NuxtLink
+        v-else
+        to="/admin/calendario"
+        class="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-ink no-underline"
+      >
+        <svg
+          class="size-3.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"
+          />
+          <path d="m14 14 2 2 4-4" />
+        </svg>
+        <span>Configuración de fechas</span>
+      </NuxtLink>
+
+      <!-- QR de salas -->
+      <span
+        v-if="paginaActual === 'qr'"
+        class="inline-flex items-center gap-1.5 rounded-full bg-notebook-ink px-4 py-1.5 text-xs font-semibold text-white shadow-xs"
+      >
+        <svg
+          class="size-3.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <rect height="5" rx="1" width="5" x="3" y="3" />
+          <rect height="5" rx="1" width="5" x="16" y="3" />
+          <rect height="5" rx="1" width="5" x="3" y="16" />
+          <path
+            d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M12 12v9M16 12h5"
+          />
+        </svg>
+        <span>QR de salas</span>
+      </span>
+
+      <NuxtLink
+        v-else
+        to="/admin/qr"
+        class="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-ink no-underline"
+      >
+        <svg
+          class="size-3.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <rect height="5" rx="1" width="5" x="3" y="3" />
+          <rect height="5" rx="1" width="5" x="16" y="3" />
+          <rect height="5" rx="1" width="5" x="3" y="16" />
+          <path
+            d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M12 12v9M16 12h5"
+          />
+        </svg>
+        <span>QR de salas</span>
+      </NuxtLink>
+
+      <span class="h-4 w-px bg-line" aria-hidden="true"></span>
+
+      <!-- Cerrar sesión -->
+      <button
+        type="button"
+        class="flex cursor-pointer items-center gap-1.5 border-0 bg-transparent text-xs font-semibold text-muted transition-colors hover:text-ink disabled:cursor-wait disabled:opacity-65"
+        :disabled="saliendo"
+        @click="salir"
+      >
+        <svg
+          class="size-3.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" x2="9" y1="12" y2="12" />
+        </svg>
+        <span>{{ saliendo ? "Cerrando sesión..." : "Cerrar sesión" }}</span>
+      </button>
+    </div>
+  </header>
+</template>

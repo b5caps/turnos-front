@@ -4,7 +4,7 @@ const estados = [
   { clave: "sin_cupos", etiqueta: "Completa", color: "bg-full" },
   {
     clave: "bloqueado",
-    etiqueta: "Bloqueada por biblioteca",
+    etiqueta: "No disponible",
     color: "bg-blocked",
   },
   {

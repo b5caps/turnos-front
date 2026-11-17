@@ -6,8 +6,8 @@ import {
   sumarDias,
 } from "~/constants/horarios";
 import { disponibilidadDelDia } from "~/api/disponibilidad";
-import { USAR_API } from "~/constants/api";
-import { disponibilidadDe } from "~/mocks/disponibilidad";
+import { bloqueosActivosParaFecha, type Bloqueo } from "~/services/bloqueos";
+import { esFeriado, type Feriado } from "~/services/feriados";
 import type {
   BloqueDisponibilidad,
   DisponibilidadDia,
@@ -15,11 +15,47 @@ import type {
   RecursoDisponibilidad,
 } from "~/types/disponibilidad";
 
+function aplicarBloqueosADia(
+  diaDatos: DisponibilidadDia,
+  bloqueos: Bloqueo[],
+  fechaStr: string,
+) {
+  for (const blq of bloqueos) {
+    const fIni = blq.fechaHoraInicio.slice(0, 10);
+    const fFin = blq.fechaHoraFin
+      ? blq.fechaHoraFin.slice(0, 10)
+      : "9999-12-31";
+    if (fechaStr < fIni || fechaStr > fFin) continue;
+
+    const hIni = blq.fechaHoraInicio.slice(11, 16);
+    const hFin = blq.fechaHoraFin ? blq.fechaHoraFin.slice(11, 16) : "23:59";
+    const minIni = horaAMinutos(hIni);
+    const minFin = horaAMinutos(hFin);
+
+    for (const recurso of diaDatos.recursos) {
+      if (recurso.tipo !== "SALA") continue;
+      if (
+        blq.recursoId !== undefined &&
+        String(blq.recursoId) !== String(recurso.id)
+      ) {
+        continue;
+      }
+
+      for (const bloque of recurso.bloques) {
+        const bMin = horaAMinutos(bloque.inicio);
+        if (bMin >= minIni && bMin < minFin) {
+          bloque.disponible = false;
+          bloque.motivoNoDisponible = "bloqueado";
+          bloque.motivoBloqueo = blq.motivo;
+          bloque.cuposLibres = 0;
+        }
+      }
+    }
+  }
+}
+
 function consultarDisponibilidad(fecha: string): Promise<DisponibilidadDia> {
-  if (USAR_API) return disponibilidadDelDia(fecha);
-  return new Promise((resolve) =>
-    window.setTimeout(() => resolve(disponibilidadDe(fecha)), 220),
-  );
+  return disponibilidadDelDia(fecha);
 }
 
 export function useDisponibilidad() {
@@ -72,28 +108,113 @@ export function useDisponibilidad() {
     }));
   });
 
-  async function cargar() {
-    cargando.value = true;
-    errorMessage.value = "";
+  const feriadoActual = ref<Feriado | null>(null);
+  const motivoCierreDia = ref<string | null>(null);
+
+  async function cargar(silencioso = false) {
+    if (!silencioso) {
+      cargando.value = true;
+      errorMessage.value = "";
+      motivoCierreDia.value = null;
+    }
     try {
-      dia.value = await consultarDisponibilidad(fecha.value);
-    } catch {
-      dia.value = null;
-      errorMessage.value =
-        "No pudimos cargar la disponibilidad. Volvé a intentarlo.";
+      const [datos, bloqueos, feriado] = await Promise.all([
+        consultarDisponibilidad(fecha.value),
+        bloqueosActivosParaFecha(fecha.value),
+        esFeriado(fecha.value),
+      ]);
+
+      feriadoActual.value = feriado;
+
+      if (datos) {
+        if (feriado) {
+          // El feriado inhabilita reservas para todo el día
+          datos.abierta = false;
+          motivoCierreDia.value = feriado.nombre;
+        }
+        if (bloqueos.length > 0) {
+          aplicarBloqueosADia(datos, bloqueos, fecha.value);
+
+          // Verificar si hay un bloqueo que cierre el día completo
+          const bloqueoDiaCompleto = bloqueos.find((b) => {
+            const hIni = b.fechaHoraInicio.slice(11, 16);
+            const hFin = b.fechaHoraFin
+              ? b.fechaHoraFin.slice(11, 16)
+              : "23:59";
+            return (
+              hIni <= "10:00" &&
+              (hFin >= "22:00" || !b.fechaHoraFin || hFin === "23:59")
+            );
+          });
+          if (bloqueoDiaCompleto && !motivoCierreDia.value) {
+            motivoCierreDia.value = bloqueoDiaCompleto.motivo;
+          }
+
+          // Asignar motivo a cualquier bloque bloqueado que no lo tenga aún
+          for (const recurso of datos.recursos) {
+            for (const b of recurso.bloques) {
+              if (b.motivoNoDisponible === "bloqueado" && !b.motivoBloqueo) {
+                const bMin = horaAMinutos(b.inicio);
+                const blq = bloqueos.find((bl) => {
+                  if (
+                    bl.recursoId !== undefined &&
+                    bl.recursoId !== null &&
+                    String(bl.recursoId) !== String(recurso.id)
+                  ) {
+                    return false;
+                  }
+                  const minIni = horaAMinutos(bl.fechaHoraInicio.slice(11, 16));
+                  const minFin = bl.fechaHoraFin
+                    ? horaAMinutos(bl.fechaHoraFin.slice(11, 16))
+                    : 24 * 60;
+                  return bMin >= minIni && bMin < minFin;
+                });
+                b.motivoBloqueo = blq?.motivo || "Bloqueo por biblioteca";
+              }
+            }
+          }
+        }
+      }
+      dia.value = datos;
+      if (silencioso) {
+        errorMessage.value = "";
+      }
+    } catch (fallo) {
+      if (!silencioso) {
+        dia.value = null;
+        errorMessage.value =
+          "No pudimos cargar la disponibilidad. Volvé a intentarlo.";
+      } else {
+        const err = fallo as {
+          status?: number;
+          statusCode?: number;
+          response?: { status?: number };
+        };
+        const status = err?.status ?? err?.statusCode ?? err?.response?.status;
+        if (status === 401) throw fallo;
+      }
     } finally {
-      cargando.value = false;
+      if (!silencioso) {
+        cargando.value = false;
+      }
     }
   }
 
   function irAFecha(nuevaFecha: string) {
-    if (!nuevaFecha || nuevaFecha === fecha.value) return;
-    fecha.value = nuevaFecha;
+    if (!nuevaFecha) return;
+    const destino = nuevaFecha < hoyIso() ? hoyIso() : nuevaFecha;
+    if (destino === fecha.value) return;
+    fecha.value = destino;
     cargar();
   }
 
   function moverDias(dias: number) {
-    irAFecha(sumarDias(fecha.value, dias));
+    const objetivo = sumarDias(fecha.value, dias);
+    if (dias < 0 && objetivo < hoyIso()) {
+      irAFecha(hoyIso());
+      return;
+    }
+    irAFecha(objetivo);
   }
 
   function irAHoy() {
@@ -145,6 +266,8 @@ export function useDisponibilidad() {
     errorMessage,
     abierta,
     esHoy,
+    feriadoActual,
+    motivoCierreDia,
     salas,
     salaSeleccionada,
     recursosVisibles,

@@ -109,6 +109,27 @@ function cerrar() {
           {{ cancelando ? "Cancelando..." : "Cancelar reserva" }}
         </button>
 
+        <div
+          v-else-if="reserva.conCheckIn && reserva.estado === 'activa'"
+          class="flex flex-col items-end gap-1 text-right max-tablet:items-start max-tablet:text-left"
+        >
+          <span
+            class="rounded bg-mint px-2.5 py-1 text-xs font-semibold text-forest-deep"
+          >
+            Check-in registrado
+          </span>
+          <span class="text-mini text-muted">
+            No se puede cancelar porque el check-in ya fue registrado.
+          </span>
+        </div>
+
+        <span
+          v-else-if="reserva.estado === 'liberada_por_ausencia'"
+          class="rounded bg-danger/10 px-2.5 py-1 text-xs font-semibold text-danger"
+        >
+          Liberada por ausencia
+        </span>
+
         <span
           v-else-if="reserva.estado === 'cancelada'"
           class="rounded bg-danger/10 px-2.5 py-1 text-xs font-semibold text-danger"

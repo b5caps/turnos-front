@@ -1,5 +1,7 @@
 import { ref } from "vue";
 import { cancelarReserva, misReservas } from "~/api/reservas";
+import { POLLING_INTERVALOS } from "~/constants/polling";
+import { usePolling } from "~/composables/usePolling";
 import type { EstadoFiltro, ReservaPropia } from "~/types/reservas";
 
 export function useMisReservas() {
@@ -11,25 +13,42 @@ export function useMisReservas() {
   const aviso = ref("");
   const cancelando = ref<number | null>(null);
 
-  async function cargar() {
+  async function cargar(silencioso = false) {
     if (!usuario.value) {
       reservas.value = [];
       errorMessage.value = "";
       return;
     }
 
-    cargando.value = true;
-    errorMessage.value = "";
+    if (!silencioso) {
+      cargando.value = true;
+      errorMessage.value = "";
+    }
     try {
       reservas.value = await misReservas(usuario.value.id, filtro.value);
+      if (silencioso) {
+        errorMessage.value = "";
+      }
     } catch (fallo) {
-      reservas.value = [];
-      errorMessage.value =
-        fallo instanceof Error
-          ? fallo.message
-          : "No pudimos cargar tus reservas.";
+      if (!silencioso) {
+        errorMessage.value =
+          fallo instanceof Error
+            ? fallo.message
+            : "No pudimos conectar con el servidor. Probá de nuevo.";
+      } else {
+        const err = fallo as {
+          status?: number;
+          statusCode?: number;
+          response?: { status?: number };
+        };
+        const status = err?.status ?? err?.statusCode ?? err?.response?.status;
+        if (status === 401) throw fallo;
+        // F2: Mantener datos anteriores y no borrar el listado
+      }
     } finally {
-      cargando.value = false;
+      if (!silencioso) {
+        cargando.value = false;
+      }
     }
   }
 
@@ -58,6 +77,14 @@ export function useMisReservas() {
     }
   }
 
+  // Polling para mis reservas (60 segundos)
+  const polling = usePolling(() => cargar(true), {
+    intervaloMs: POLLING_INTERVALOS.MIS_RESERVAS,
+    pausarSiOculta: true,
+    activo: () => Boolean(usuario.value),
+    accionEnCurso: () => cancelando.value !== null,
+  });
+
   return {
     usuario,
     reservas,
@@ -69,5 +96,7 @@ export function useMisReservas() {
     cargar,
     filtrarPor,
     cancelar,
+    horaFormateada: polling.horaFormateada,
+    refrescar: polling.refrescar,
   };
 }

@@ -9,6 +9,11 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: import.meta.env.NUXT_PUBLIC_API_BASE,
+      usarApiBloqueos: import.meta.env.NUXT_PUBLIC_USAR_API_BLOQUEOS ?? "true",
+      usarApiFeriados: import.meta.env.NUXT_PUBLIC_USAR_API_FERIADOS ?? "true",
+      usarApiAsistencia:
+        import.meta.env.NUXT_PUBLIC_USAR_API_ASISTENCIA ?? "true",
+      usarMockAuth: import.meta.env.NUXT_PUBLIC_USAR_MOCK_AUTH ?? "false",
     },
   },
   devtools: { enabled: true },

@@ -1,4 +1,5 @@
-export type EstadoReserva = "activa" | "cancelada" | "finalizada";
+export type EstadoReserva =
+  "activa" | "cancelada" | "finalizada" | "liberada_por_ausencia";
 export type EstadoFiltro = "todas" | "activas" | "canceladas" | "finalizadas";
 
 export interface ReservaPropia {

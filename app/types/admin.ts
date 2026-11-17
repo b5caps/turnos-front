@@ -1,4 +1,5 @@
-export type EstadoTurno = "pendiente" | "activo" | "finalizado" | "cancelado";
+export type EstadoTurno =
+  "pendiente" | "activo" | "finalizado" | "cancelado" | "liberada_por_ausencia";
 export type FiltroTurno = "todos" | EstadoTurno;
 
 export interface Turno {
