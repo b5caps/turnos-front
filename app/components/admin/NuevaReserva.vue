@@ -22,6 +22,7 @@ const {
   salas,
   cargar,
   irAFecha,
+  estadoDe,
   duracionesPosibles,
   notebooksEnVentana,
 } = useDisponibilidad();
@@ -35,6 +36,18 @@ const duracion = ref(0);
 const conNotebook = ref(false);
 const enviando = ref(false);
 const errorMessage = ref("");
+
+const horariosLibres = computed(() => {
+  const sala = salas.value.find((item) => item.id === salaId.value);
+  if (!sala) return [];
+  return sala.bloques
+    .filter(
+      (bloque) =>
+        bloques.value.includes(bloque.inicio) &&
+        estadoDe(bloque) === "disponible",
+    )
+    .map((bloque) => bloque.inicio);
+});
 
 const duraciones = computed(() =>
   salaId.value && inicio.value
@@ -70,6 +83,10 @@ const listo = computed(
     Boolean(inicio.value) &&
     duracion.value > 0,
 );
+
+watch(horariosLibres, (opciones) => {
+  if (inicio.value && !opciones.includes(inicio.value)) inicio.value = "";
+});
 
 watch([salaId, inicio], () => {
   duracion.value = 0;
@@ -180,10 +197,20 @@ cargar();
         <select
           v-model="inicio"
           :class="[CAMPO, 'text-tiny']"
-          :disabled="!salaId"
+          :disabled="!salaId || !horariosLibres.length"
         >
-          <option value="">Elegí un horario</option>
-          <option v-for="bloque in bloques" :key="bloque" :value="bloque">
+          <option value="">
+            {{
+              salaId && !horariosLibres.length
+                ? "Sin horarios libres ese día"
+                : "Elegí un horario"
+            }}
+          </option>
+          <option
+            v-for="bloque in horariosLibres"
+            :key="bloque"
+            :value="bloque"
+          >
             {{ bloque }}
           </option>
         </select>

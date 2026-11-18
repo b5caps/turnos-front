@@ -231,13 +231,6 @@ onMounted(cargar);
           </div>
           <div class="flex flex-wrap items-center gap-3">
             <button
-              :class="[BOTON, 'bg-estado-activo text-white']"
-              type="button"
-              @click="creando = !creando"
-            >
-              {{ creando ? "Cerrar formulario" : "Nueva reserva" }}
-            </button>
-            <button
               :class="[
                 BOTON,
                 'bg-estado-cancelado text-white disabled:cursor-not-allowed disabled:opacity-40',
@@ -247,6 +240,13 @@ onMounted(cargar);
               @click="confirmando = true"
             >
               {{ cancelando ? "Cancelando..." : "Cancelar turnos" }}
+            </button>
+            <button
+              :class="[BOTON, 'bg-estado-activo text-white']"
+              type="button"
+              @click="creando = !creando"
+            >
+              {{ creando ? "Cerrar formulario" : "Nueva reserva" }}
             </button>
           </div>
         </div>
