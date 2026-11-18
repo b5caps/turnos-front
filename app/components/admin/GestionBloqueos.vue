@@ -9,7 +9,11 @@ import {
   CAMPO,
   ETIQUETA,
 } from "~/constants/estilos";
-import { aIsoConZona, formatearFechaCorta } from "~/constants/horarios";
+import {
+  aIsoConZona,
+  formatearFechaCorta,
+  partesDeIso,
+} from "~/constants/horarios";
 import type { CrearBloqueoInput } from "~/services/bloqueos";
 
 const props = withDefaults(
@@ -182,11 +186,11 @@ async function guardarBloqueo() {
 }
 
 function formatearRango(inicioIso: string, finIso: string | null) {
+  const hIni = partesDeIso(inicioIso).hora;
   if (!finIso) {
-    return `Desde ${inicioIso.slice(11, 16)} hs (Indefinido)`;
+    return `Desde ${hIni} hs (Indefinido)`;
   }
-  const hIni = inicioIso.slice(11, 16);
-  const hFin = finIso.slice(11, 16);
+  const hFin = partesDeIso(finIso).hora;
 
   if (
     (hIni === "00:00" && hFin === "23:59") ||
@@ -585,7 +589,7 @@ onMounted(async () => {
                   class="cursor-pointer text-xs font-semibold text-danger hover:underline disabled:opacity-50"
                   :disabled="guardando"
                   type="button"
-                  @click="eliminar(b.recursoId, b.id)"
+                  @click="eliminar(b.id)"
                 >
                   Eliminar
                 </button>

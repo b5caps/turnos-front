@@ -3,9 +3,10 @@ import type {
   Bloqueo,
   CrearBloqueoInput,
   FiltroBloqueosQuery,
-  ResultadoBloqueoMultiple,
+  ResultadoCrearBloqueo,
 } from "./types";
 import type { EspacioSala } from "~/types/espacios";
+import { partesDeIso } from "~/constants/horarios";
 
 function formatearError(
   status: number | undefined,
@@ -64,114 +65,64 @@ export async function listarEspaciosActivos(): Promise<EspacioSala[]> {
 export async function listarBloqueos(
   query?: FiltroBloqueosQuery,
 ): Promise<Bloqueo[]> {
-  if (query?.espacioId) {
-    const queryParams: Record<string, string> = {};
-    if (query.desde) queryParams.desde = query.desde;
-    if (query.hasta) queryParams.hasta = query.hasta;
-
-    const { data, error, response } = await client.get<{ data: Bloqueo[] }>({
-      url: `/api/espacios/${query.espacioId}/bloqueos`,
-      query: Object.keys(queryParams).length ? queryParams : undefined,
-    });
-
-    if (error || !data?.data) {
-      throw formatearError(
-        response?.status,
-        error,
-        "No pudimos listar los bloqueos del espacio.",
-      );
-    }
-
-    return [...data.data].sort((a, b) =>
-      b.fechaHoraInicio.localeCompare(a.fechaHoraInicio),
-    );
-  }
-
-  // Sin espacioId específico: consultamos todas las salas activas
-  const salas = await listarEspaciosActivos();
   const queryParams: Record<string, string> = {};
   if (query?.desde) queryParams.desde = query.desde;
   if (query?.hasta) queryParams.hasta = query.hasta;
 
-  const promesas = salas.map(async (sala) => {
-    try {
-      const { data } = await client.get<{ data: Bloqueo[] }>({
-        url: `/api/espacios/${sala.id}/bloqueos`,
-        query: Object.keys(queryParams).length ? queryParams : undefined,
-      });
-      return data?.data ?? [];
-    } catch {
-      return [];
-    }
-  });
-
-  const listas = await Promise.all(promesas);
-  const todos = listas.flat();
-
-  // Deduplicar por id
-  const mapa = new Map<number, Bloqueo>();
-  for (const b of todos) {
-    mapa.set(b.id, b);
-  }
-
-  return Array.from(mapa.values()).sort((a, b) =>
-    b.fechaHoraInicio.localeCompare(a.fechaHoraInicio),
-  );
-}
-
-export async function crearBloqueo(
-  espacioId: number,
-  input: CrearBloqueoInput,
-): Promise<Bloqueo> {
-  const { data, error, response } = await client.post<{ data: Bloqueo }>({
-    url: `/api/espacios/${espacioId}/bloqueos`,
-    body: input,
+  const { data, error, response } = await client.get<{ data: Bloqueo[] }>({
+    url: "/api/bloqueos",
+    query: Object.keys(queryParams).length ? queryParams : undefined,
   });
 
   if (error || !data?.data) {
     throw formatearError(
       response?.status,
       error,
-      "No pudimos registrar el bloqueo en este espacio.",
+      "No pudimos listar los bloqueos.",
     );
   }
 
-  return data.data;
+  const espacioId = query?.espacioId;
+  const lista = espacioId
+    ? data.data.filter((b) => b.recursoId === null || b.recursoId === espacioId)
+    : data.data;
+
+  return [...lista].sort((a, b) =>
+    b.fechaHoraInicio.localeCompare(a.fechaHoraInicio),
+  );
 }
 
-export async function bloquearTodasLasSalas(
+export async function crearBloqueo(
+  recursoId: number | null,
   input: CrearBloqueoInput,
-): Promise<ResultadoBloqueoMultiple> {
-  const salas = await listarEspaciosActivos();
-  const exitosos: ResultadoBloqueoMultiple["exitosos"] = [];
-  const fallidos: ResultadoBloqueoMultiple["fallidos"] = [];
+): Promise<ResultadoCrearBloqueo> {
+  const { data, error, response } = await client.post<{
+    data: Bloqueo;
+    reservasCanceladas?: number;
+    holdsLiberados?: number;
+  }>({
+    url: "/api/bloqueos",
+    body: { ...input, recursoId },
+  });
 
-  for (const sala of salas) {
-    try {
-      const bloqueo = await crearBloqueo(sala.id, input);
-      exitosos.push({
-        salaId: sala.id,
-        salaNombre: sala.identificador,
-        bloqueo,
-      });
-    } catch (err: any) {
-      fallidos.push({
-        salaId: sala.id,
-        salaNombre: sala.identificador,
-        error: err?.message || "Error al crear bloqueo",
-      });
-    }
+  if (error || !data?.data) {
+    throw formatearError(
+      response?.status,
+      error,
+      "No pudimos registrar el bloqueo.",
+    );
   }
 
-  return { exitosos, fallidos };
+  return {
+    bloqueo: data.data,
+    reservasCanceladas: data.reservasCanceladas ?? 0,
+    holdsLiberados: data.holdsLiberados ?? 0,
+  };
 }
 
-export async function eliminarBloqueo(
-  espacioId: number,
-  bloqueoId: number,
-): Promise<void> {
+export async function eliminarBloqueo(bloqueoId: number): Promise<void> {
   const { error, response } = await client.delete({
-    url: `/api/espacios/${espacioId}/bloqueos/${bloqueoId}`,
+    url: `/api/bloqueos/${bloqueoId}`,
   });
 
   if (error && response?.status !== 204) {
@@ -208,9 +159,10 @@ export async function contarReservasEnRango(
     const fechaStr = fecha.slice(0, 10);
     const coincidentes = data.data.filter((res) => {
       if (res.fechaHoraCancelacion) return false;
-      const resInicio = res.fechaHoraInicio.slice(11, 16);
-      const resFin = res.fechaHoraFin.slice(11, 16);
-      const resFecha = res.fechaHoraInicio.slice(0, 10);
+      const inicio = partesDeIso(res.fechaHoraInicio);
+      const resInicio = inicio.hora;
+      const resFin = partesDeIso(res.fechaHoraFin).hora;
+      const resFecha = inicio.fecha;
 
       if (resFecha !== fechaStr) return false;
 
@@ -244,15 +196,28 @@ export async function bloqueosActivosParaFecha(
   const desde = `${fechaStr}T00:00:00-03:00`;
   const hasta = `${fechaStr}T23:59:59-03:00`;
 
-  const lista = await listarBloqueos(
-    recursoId ? { espacioId: recursoId, desde, hasta } : { desde, hasta },
-  );
+  let lista: Bloqueo[];
+  try {
+    lista = await listarBloqueos(
+      recursoId ? { espacioId: recursoId, desde, hasta } : { desde, hasta },
+    );
+  } catch {
+    return [];
+  }
 
   return lista.filter((b) => {
-    if (recursoId !== undefined && b.recursoId !== recursoId) return false;
+    if (
+      recursoId !== undefined &&
+      b.recursoId !== null &&
+      b.recursoId !== recursoId
+    ) {
+      return false;
+    }
 
-    const fIni = b.fechaHoraInicio.slice(0, 10);
-    const fFin = b.fechaHoraFin ? b.fechaHoraFin.slice(0, 10) : "9999-12-31";
+    const fIni = partesDeIso(b.fechaHoraInicio).fecha;
+    const fFin = b.fechaHoraFin
+      ? partesDeIso(b.fechaHoraFin).fecha
+      : "9999-12-31";
     return fechaStr >= fIni && fechaStr <= fFin;
   });
 }

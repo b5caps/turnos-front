@@ -1,6 +1,5 @@
 import { computed, ref } from "vue";
 import {
-  bloquearTodasLasSalas,
   contarReservasEnRango,
   crearBloqueo,
   eliminarBloqueo,
@@ -9,7 +8,7 @@ import {
   type Bloqueo,
   type CrearBloqueoInput,
 } from "~/services/bloqueos";
-import { hoyIso, sumarDias } from "~/constants/horarios";
+import { hoyIso, partesDeIso, sumarDias } from "~/constants/horarios";
 import type { EspacioSala } from "~/types/espacios";
 
 export function useBloqueosAdmin() {
@@ -51,8 +50,10 @@ export function useBloqueosAdmin() {
   const bloqueosDelDia = computed(() => {
     const fSel = fechaSeleccionada.value;
     return bloqueos.value.filter((b) => {
-      const fIni = b.fechaHoraInicio.slice(0, 10);
-      const fFin = b.fechaHoraFin ? b.fechaHoraFin.slice(0, 10) : "9999-12-31";
+      const fIni = partesDeIso(b.fechaHoraInicio).fecha;
+      const fFin = b.fechaHoraFin
+        ? partesDeIso(b.fechaHoraFin).fecha
+        : "9999-12-31";
       return fSel >= fIni && fSel <= fFin;
     });
   });
@@ -77,42 +78,20 @@ export function useBloqueosAdmin() {
   }
 
   async function crear(
-    espacioId: number | null,
+    recursoId: number | null,
     input: CrearBloqueoInput,
   ): Promise<boolean> {
     guardando.value = true;
     errorMessage.value = "";
     try {
-      if (espacioId === null) {
-        // Bloquear todas las salas activas
-        const res = await bloquearTodasLasSalas(input);
-        if (res.fallidos.length === 0) {
-          mostrarAviso(
-            `Se bloquearon exitosamente las ${res.exitosos.length} salas activas.`,
-          );
-          await cargar();
-          return true;
-        }
-
-        if (res.exitosos.length > 0) {
-          errorMessage.value = `Se bloquearon: ${res.exitosos
-            .map((e) => e.salaNombre)
-            .join(", ")}. Fallaron: ${res.fallidos
-            .map((f) => `${f.salaNombre} (${f.error})`)
-            .join("; ")}`;
-          await cargar();
-          return false;
-        }
-
-        errorMessage.value = `No se pudo bloquear ninguna sala: ${res.fallidos
-          .map((f) => `${f.salaNombre} (${f.error})`)
-          .join("; ")}`;
-        return false;
-      }
-
-      // Bloquear una sala específica
-      await crearBloqueo(espacioId, input);
-      mostrarAviso("Bloqueo registrado exitosamente.");
+      const resultado = await crearBloqueo(recursoId, input);
+      const alcance =
+        recursoId === null ? "todas las salas" : obtenerNombreSala(recursoId);
+      const canceladas = resultado.reservasCanceladas;
+      const detalle = canceladas
+        ? ` Se cancelaron ${canceladas} ${canceladas === 1 ? "reserva" : "reservas"}.`
+        : "";
+      mostrarAviso(`Bloqueo registrado para ${alcance}.${detalle}`);
       await cargar();
       return true;
     } catch (err: any) {
@@ -124,14 +103,12 @@ export function useBloqueosAdmin() {
     }
   }
 
-  async function eliminar(recursoId: number, bloqueoId: number) {
+  async function eliminar(bloqueoId: number) {
     guardando.value = true;
     errorMessage.value = "";
     try {
-      await eliminarBloqueo(recursoId, bloqueoId);
-      bloqueos.value = bloqueos.value.filter(
-        (b) => !(b.id === bloqueoId && b.recursoId === recursoId),
-      );
+      await eliminarBloqueo(bloqueoId);
+      bloqueos.value = bloqueos.value.filter((b) => b.id !== bloqueoId);
       mostrarAviso("Bloqueo eliminado correctamente.");
     } catch (err: any) {
       errorMessage.value = err?.message || "No se pudo eliminar el bloqueo.";
@@ -140,7 +117,8 @@ export function useBloqueosAdmin() {
     }
   }
 
-  function obtenerNombreSala(recursoId: number): string {
+  function obtenerNombreSala(recursoId: number | null): string {
+    if (recursoId === null) return "Todas las salas";
     const encontrada = salas.value.find((s) => s.id === recursoId);
     return encontrada ? encontrada.identificador : `Sala #${recursoId}`;
   }

@@ -2,7 +2,7 @@ import type {
   Bloqueo,
   CrearBloqueoInput,
   FiltroBloqueosQuery,
-  ResultadoBloqueoMultiple,
+  ResultadoCrearBloqueo,
 } from "./types";
 import type { EspacioSala } from "~/types/espacios";
 import { listarEspaciosActivos as listarEspaciosReales } from "~/services/espacios.service";
@@ -79,7 +79,10 @@ export async function listarBloqueos(
   let resultado = [...lista];
 
   if (query?.espacioId !== undefined) {
-    resultado = resultado.filter((b) => b.recursoId === query.espacioId);
+    const espacioId = query.espacioId;
+    resultado = resultado.filter(
+      (b) => b.recursoId === null || b.recursoId === espacioId,
+    );
   }
 
   if (query?.desde) {
@@ -106,9 +109,9 @@ export async function listarBloqueos(
 }
 
 export async function crearBloqueo(
-  espacioId: number,
+  recursoId: number | null,
   input: CrearBloqueoInput,
-): Promise<Bloqueo> {
+): Promise<ResultadoCrearBloqueo> {
   const motivoLimpio = input.motivo?.trim() || "";
   if (!motivoLimpio || motivoLimpio.length > 255) {
     throw new Error("El motivo debe tener entre 1 y 255 caracteres.");
@@ -147,7 +150,7 @@ export async function crearBloqueo(
 
   const nuevo: Bloqueo = {
     id: Date.now() + Math.floor(Math.random() * 1000),
-    recursoId: espacioId,
+    recursoId,
     fechaHoraInicio: inicioIso,
     fechaHoraFin: finIso,
     motivo: motivoLimpio,
@@ -158,34 +161,7 @@ export async function crearBloqueo(
   lista.unshift(nuevo);
   persistirEnAlmacenamiento(lista);
 
-  return nuevo;
-}
-
-export async function bloquearTodasLasSalas(
-  input: CrearBloqueoInput,
-): Promise<ResultadoBloqueoMultiple> {
-  const salas = await listarEspaciosActivos();
-  const exitosos: ResultadoBloqueoMultiple["exitosos"] = [];
-  const fallidos: ResultadoBloqueoMultiple["fallidos"] = [];
-
-  for (const sala of salas) {
-    try {
-      const bloqueo = await crearBloqueo(sala.id, input);
-      exitosos.push({
-        salaId: sala.id,
-        salaNombre: sala.identificador,
-        bloqueo,
-      });
-    } catch (err: any) {
-      fallidos.push({
-        salaId: sala.id,
-        salaNombre: sala.identificador,
-        error: err?.message || "Error al crear bloqueo",
-      });
-    }
-  }
-
-  return { exitosos, fallidos };
+  return { bloqueo: nuevo, reservasCanceladas: 0, holdsLiberados: 0 };
 }
 
 export async function eliminarBloqueo(
@@ -241,7 +217,13 @@ export async function bloqueosActivosParaFecha(
   const fechaStr = fechaIso.slice(0, 10);
 
   return lista.filter((b) => {
-    if (recursoId !== undefined && b.recursoId !== recursoId) return false;
+    if (
+      recursoId !== undefined &&
+      b.recursoId !== null &&
+      b.recursoId !== recursoId
+    ) {
+      return false;
+    }
 
     const fIni = b.fechaHoraInicio.slice(0, 10);
     const fFin = b.fechaHoraFin ? b.fechaHoraFin.slice(0, 10) : "9999-12-31";
