@@ -99,6 +99,20 @@ function cerrar() {
           </div>
         </div>
 
+        <p
+          v-if="
+            reserva.estado === 'activa' &&
+            !reserva.conCheckIn &&
+            reserva.limiteCheckIn
+          "
+          class="m-0 max-w-56 text-right text-mini text-muted max-tablet:max-w-none max-tablet:text-left"
+        >
+          Registrá tu asistencia con el QR de la sala antes de las
+          <strong class="font-bold text-ink">{{ reserva.limiteCheckIn }}</strong
+          >. Si no, la reserva se libera y el lugar queda disponible para otra
+          persona.
+        </p>
+
         <button
           v-if="reserva.cancelable && !confirmando"
           type="button"
@@ -123,12 +137,20 @@ function cerrar() {
           </span>
         </div>
 
-        <span
+        <div
           v-else-if="reserva.estado === 'liberada_por_ausencia'"
-          class="rounded bg-danger/10 px-2.5 py-1 text-xs font-semibold text-danger"
+          class="flex flex-col items-end gap-1 text-right max-tablet:items-start max-tablet:text-left"
         >
-          Liberada por ausencia
-        </span>
+          <span
+            class="rounded bg-danger/10 px-2.5 py-1 text-xs font-semibold text-danger"
+          >
+            Liberada por ausencia
+          </span>
+          <span class="max-w-56 text-mini text-muted max-tablet:max-w-none">
+            No se registró tu asistencia dentro de los primeros 15 minutos, así
+            que el lugar volvió a quedar disponible.
+          </span>
+        </div>
 
         <span
           v-else-if="reserva.estado === 'cancelada'"

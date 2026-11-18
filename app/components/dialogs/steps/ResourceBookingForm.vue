@@ -334,6 +334,31 @@ onUnmounted(() => {
           </template>
         </dl>
 
+        <div
+          class="mt-5 flex gap-3 rounded-lg bg-notebook-off px-4 py-3 text-mini leading-relaxed text-ink"
+        >
+          <svg
+            aria-hidden="true"
+            class="mt-0.5 size-4 shrink-0 text-notebook-ink"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M12 8v5M12 16h.01M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Z"
+            />
+          </svg>
+          <span>
+            Tenés <strong class="font-bold">15 minutos</strong> desde que
+            empieza tu turno para registrar la asistencia con el código QR de la
+            sala. Pasado ese tiempo la reserva se libera y el lugar queda
+            disponible para otra persona.
+          </span>
+        </div>
+
         <div class="mt-6">
           <NuxtLink
             to="/mis-reservas"

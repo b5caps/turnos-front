@@ -8,24 +8,23 @@ import {
 } from "~/api/auth";
 import { cancelarReserva } from "~/api/reservas";
 import { hoyIso, partesDeIso } from "~/constants/horarios";
-import type { EstadoTurno, MetricasDia, Turno } from "~/types/admin";
+import type {
+  CausaCancelacion,
+  EstadoTurno,
+  MetricasDia,
+  Turno,
+} from "~/types/admin";
 
-type ReservaDelBack = GetApiReservasResponses[200]["data"][number];
+type ReservaDelBack = GetApiReservasResponses[200]["data"][number] & {
+  tipoCancelacion?: CausaCancelacion | null;
+};
 
 function pareceNotebook(nombre: string) {
   return /notebook/i.test(nombre);
 }
 
-function estadoDe(
-  desde: Date,
-  hasta: Date,
-  cancelado: boolean,
-  tipoCancelacion?: string | null,
-): EstadoTurno {
-  if (cancelado) {
-    if (tipoCancelacion === "AUSENCIA") return "liberada_por_ausencia";
-    return "cancelado";
-  }
+function estadoDe(desde: Date, hasta: Date, cancelado: boolean): EstadoTurno {
+  if (cancelado) return "cancelado";
   const ahora = new Date();
   if (hasta <= ahora) return "finalizado";
   if (desde <= ahora) return "activo";
@@ -46,17 +45,18 @@ function aTurno(
     new Date(reserva.fechaHoraInicio),
     new Date(reserva.fechaHoraFin),
     Boolean(reserva.fechaHoraCancelacion),
-    (reserva as any).tipoCancelacion,
   );
 
   return {
     id: reserva.id,
+    usuarioId: reserva.usuarioId,
     alumno,
     email: reserva.usuario?.email ?? "",
     fecha: desde.fecha,
     inicio: desde.hora,
     fin: partesDeIso(reserva.fechaHoraFin).hora,
     estado,
+    causaCancelacion: reserva.tipoCancelacion ?? null,
     conNotebook: idsNotebook
       ? reserva.recursos.some((item) => idsNotebook.has(item.recursoId))
       : recursos.some(pareceNotebook),
