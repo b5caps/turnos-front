@@ -17,6 +17,24 @@ export class ErrorApi extends Error {
   }
 }
 
+function errorDeRespuesta(
+  error: unknown,
+  response: { status?: number } | undefined,
+  porDefecto: string,
+): ErrorApi {
+  if (!response)
+    return new ErrorApi(
+      "No pudimos conectar con el servidor. Probá de nuevo.",
+      undefined,
+      error,
+    );
+  return new ErrorApi(
+    (error as { message?: string })?.message || porDefecto,
+    response.status,
+    error,
+  );
+}
+
 export interface UsuarioAutenticado {
   id: number;
   rol: "UTN" | "EXTERNO" | "ADMIN";
@@ -213,9 +231,7 @@ export async function iniciarSesionApi(
   });
 
   if (error || !data) {
-    const errorMsg =
-      (error as { message?: string })?.message || "Credenciales inválidas";
-    throw new ErrorApi(errorMsg, response?.status, error);
+    throw errorDeRespuesta(error, response, "Credenciales inválidas");
   }
 
   guardarToken(data.token);
@@ -245,9 +261,7 @@ export async function registrarApi(
   });
 
   if (error || !data) {
-    const errorMsg =
-      (error as { message?: string })?.message || "Error al registrar usuario";
-    throw new ErrorApi(errorMsg, response?.status, error);
+    throw errorDeRespuesta(error, response, "Error al registrar usuario");
   }
 
   guardarToken(data.token);
@@ -292,10 +306,11 @@ export async function cerrarSesionApi(
   }
 
   if (error || !data) {
-    const errorMsg =
-      (error as { message?: string })?.message ||
-      "Error al cerrar sesión en el servidor";
-    throw new ErrorApi(errorMsg, response?.status, error);
+    throw errorDeRespuesta(
+      error,
+      response,
+      "Error al cerrar sesión en el servidor",
+    );
   }
 
   return data;

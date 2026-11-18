@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ESTADO_SUAVE } from "~/constants/estilos";
 import { formatearFechaCorta } from "~/constants/horarios";
-import type { EstadoTurno, Turno } from "~/types/admin";
+import type { CausaCancelacion, EstadoTurno, Turno } from "~/types/admin";
 
 defineProps<{
   turnos: Turno[];
@@ -19,7 +19,12 @@ const ETIQUETA: Record<EstadoTurno, string> = {
   activo: "Activo",
   finalizado: "Finalizado",
   cancelado: "Cancelado",
-  liberada_por_ausencia: "Liberada por ausencia",
+};
+
+const CAUSA: Record<CausaCancelacion, string> = {
+  USUARIO: "por el alumno",
+  ADMINISTRADOR: "por un administrador",
+  AUSENCIA: "por ausencia",
 };
 
 const ENCABEZADO =
@@ -115,6 +120,11 @@ const CELDA = "px-6 py-4 align-middle";
                 'inline-block rounded-full px-3 py-1.5 text-mini font-bold whitespace-nowrap',
               ]"
               >{{ ETIQUETA[turno.estado] }}</span
+            >
+            <span
+              v-if="turno.causaCancelacion"
+              class="mt-1 block text-mini text-muted"
+              >{{ CAUSA[turno.causaCancelacion] }}</span
             >
           </td>
         </tr>

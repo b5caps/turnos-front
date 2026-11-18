@@ -4,7 +4,7 @@ import type {
   Bloqueo,
   CrearBloqueoInput,
   FiltroBloqueosQuery,
-  ResultadoBloqueoMultiple,
+  ResultadoCrearBloqueo,
 } from "./types";
 import type { EspacioSala } from "~/types/espacios";
 
@@ -38,29 +38,18 @@ export function listarBloqueos(
 }
 
 export function crearBloqueo(
-  espacioId: number,
+  recursoId: number | null,
   input: CrearBloqueoInput,
-): Promise<Bloqueo> {
+): Promise<ResultadoCrearBloqueo> {
   return usarApi()
-    ? api.crearBloqueo(espacioId, input)
-    : mock.crearBloqueo(espacioId, input);
+    ? api.crearBloqueo(recursoId, input)
+    : mock.crearBloqueo(recursoId, input);
 }
 
-export function bloquearTodasLasSalas(
-  input: CrearBloqueoInput,
-): Promise<ResultadoBloqueoMultiple> {
+export function eliminarBloqueo(bloqueoId: number): Promise<void> {
   return usarApi()
-    ? api.bloquearTodasLasSalas(input)
-    : mock.bloquearTodasLasSalas(input);
-}
-
-export function eliminarBloqueo(
-  espacioId: number,
-  bloqueoId: number,
-): Promise<void> {
-  return usarApi()
-    ? api.eliminarBloqueo(espacioId, bloqueoId)
-    : mock.eliminarBloqueo(espacioId, bloqueoId);
+    ? api.eliminarBloqueo(bloqueoId)
+    : mock.eliminarBloqueo(bloqueoId);
 }
 
 export function contarReservasEnRango(

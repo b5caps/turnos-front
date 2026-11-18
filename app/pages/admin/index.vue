@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import AdminHeader from "~/components/admin/AdminHeader.vue";
 import GrillaTurnos from "~/components/admin/GrillaTurnos.vue";
+import NuevaReserva from "~/components/admin/NuevaReserva.vue";
 import TarjetaMetrica from "~/components/admin/TarjetaMetrica.vue";
 import { BOTON, BOTON_SUAVE, CAMPO, ETIQUETA } from "~/constants/estilos";
 import { formatearFechaCorta } from "~/constants/horarios";
@@ -20,6 +21,7 @@ const {
   porPagina,
   cargando,
   errorMessage,
+  alumnos,
   cargar,
   filtrarPor,
   irAPagina,
@@ -29,6 +31,7 @@ const {
   paginaElegida,
   cancelando,
   aviso,
+  mostrarAviso,
   alternar,
   alternarPagina,
   limpiarSeleccion,
@@ -37,6 +40,13 @@ const {
 } = useTurnosAdmin();
 
 const confirmando = ref(false);
+const creando = ref(false);
+
+async function trasCrear(mensaje: string) {
+  creando.value = false;
+  await cargar();
+  mostrarAviso(mensaje);
+}
 const motivo = ref("");
 
 async function confirmarCancelacion() {
@@ -120,19 +130,26 @@ onMounted(cargar);
         Grilla de turnos
       </h2>
 
-      <div
-        v-if="aviso"
-        class="mb-4 flex items-center justify-between rounded-xl border border-forest/20 bg-mint px-5 py-3 text-xs font-semibold text-forest-deep"
+      <Transition
+        enter-active-class="transition-opacity duration-200"
+        enter-from-class="opacity-0"
+        leave-active-class="transition-opacity duration-500"
+        leave-to-class="opacity-0"
       >
-        <span>{{ aviso }}</span>
-        <button
-          type="button"
-          class="cursor-pointer text-xs font-bold text-forest-deep underline hover:opacity-80"
-          @click="aviso = ''"
+        <div
+          v-if="aviso"
+          class="mb-4 flex items-center justify-between rounded-xl border border-forest/20 bg-mint px-5 py-3 text-xs font-semibold text-forest-deep"
         >
-          Cerrar
-        </button>
-      </div>
+          <span>{{ aviso }}</span>
+          <button
+            type="button"
+            class="cursor-pointer text-xs font-bold text-forest-deep underline hover:opacity-80"
+            @click="aviso = ''"
+          >
+            Cerrar
+          </button>
+        </div>
+      </Transition>
 
       <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
         <label class="relative w-72 max-tablet:w-full">
@@ -212,18 +229,34 @@ onMounted(cargar);
               Limpiar
             </button>
           </div>
-          <button
-            :class="[
-              BOTON,
-              'bg-estado-cancelado text-white disabled:cursor-not-allowed disabled:opacity-40',
-            ]"
-            :disabled="!seleccionados.length || cancelando"
-            type="button"
-            @click="confirmando = true"
-          >
-            {{ cancelando ? "Cancelando..." : "Cancelar turnos" }}
-          </button>
+          <div class="flex flex-wrap items-center gap-3">
+            <button
+              :class="[
+                BOTON,
+                'bg-estado-cancelado text-white disabled:cursor-not-allowed disabled:opacity-40',
+              ]"
+              :disabled="!seleccionados.length || cancelando"
+              type="button"
+              @click="confirmando = true"
+            >
+              {{ cancelando ? "Cancelando..." : "Cancelar turnos" }}
+            </button>
+            <button
+              :class="[BOTON, 'bg-estado-activo text-white']"
+              type="button"
+              @click="creando = !creando"
+            >
+              {{ creando ? "Cerrar formulario" : "Nueva reserva" }}
+            </button>
+          </div>
         </div>
+
+        <NuevaReserva
+          v-if="creando"
+          :alumnos="alumnos"
+          @cerrar="creando = false"
+          @creada="trasCrear"
+        />
 
         <form
           v-if="confirmando"

@@ -28,19 +28,13 @@ export const TARJETA_TEXTO = "flex flex-1 flex-col gap-1";
 export const TARJETA_FLECHA = "text-base text-faint ml-auto";
 
 export type ClaveEstado =
-  | "pendiente"
-  | "activo"
-  | "finalizado"
-  | "cancelado"
-  | "liberada_por_ausencia"
-  | "notebook";
+  "pendiente" | "activo" | "finalizado" | "cancelado" | "notebook";
 
 export const ESTADO_FUERTE: Record<ClaveEstado, string> = {
   pendiente: "bg-estado-pendiente",
   activo: "bg-estado-activo",
   finalizado: "bg-estado-finalizado",
   cancelado: "bg-estado-cancelado",
-  liberada_por_ausencia: "bg-estado-cancelado",
   notebook: "bg-estado-notebook",
 };
 
@@ -49,6 +43,5 @@ export const ESTADO_SUAVE: Record<ClaveEstado, string> = {
   activo: "bg-estado-activo-suave text-estado-activo",
   finalizado: "bg-estado-finalizado-suave text-estado-finalizado",
   cancelado: "bg-estado-cancelado-suave text-estado-cancelado",
-  liberada_por_ausencia: "bg-estado-cancelado-suave text-estado-cancelado",
   notebook: "bg-estado-notebook-suave text-estado-notebook",
 };

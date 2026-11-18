@@ -1,10 +1,17 @@
-import { computed, ref, watch } from "vue";
+import { computed, onScopeDispose, ref, watch } from "vue";
 import { cancelarTurnos, metricasDelDia, todosLosTurnos } from "~/api/admin";
 import { POLLING_INTERVALOS } from "~/constants/polling";
 import { usePolling } from "~/composables/usePolling";
-import type { FiltroTurno, MetricasDia, Turno } from "~/types/admin";
+import type {
+  AlumnoConocido,
+  FiltroTurno,
+  MetricasDia,
+  Turno,
+} from "~/types/admin";
 
 const POR_PAGINA = 10;
+const AVISO_SIN_CONEXION =
+  "No pudimos conectar con el servidor. Probá de nuevo.";
 
 function normalizar(texto: string) {
   return texto
@@ -23,20 +30,41 @@ export function useTurnosAdmin() {
   const seleccionados = ref<number[]>([]);
   const cancelando = ref(false);
   const aviso = ref("");
+  let temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
+
+  function mostrarAviso(mensaje: string, milisegundos = 6000) {
+    aviso.value = mensaje;
+    clearTimeout(temporizadorAviso);
+    if (!milisegundos) return;
+    temporizadorAviso = setTimeout(() => {
+      aviso.value = "";
+    }, milisegundos);
+  }
+
+  onScopeDispose(() => clearTimeout(temporizadorAviso));
 
   const metricas = ref<MetricasDia | null>(null);
+
+  const alumnos = computed<AlumnoConocido[]>(() => {
+    const porId = new Map<number, AlumnoConocido>();
+    for (const turno of turnos.value) {
+      if (!porId.has(turno.usuarioId))
+        porId.set(turno.usuarioId, {
+          id: turno.usuarioId,
+          nombre: turno.alumno,
+          email: turno.email,
+        });
+    }
+    return [...porId.values()].sort((una, otra) =>
+      una.nombre.localeCompare(otra.nombre),
+    );
+  });
 
   const encontrados = computed(() => {
     const porEstado =
       filtro.value === "todos"
         ? turnos.value
-        : filtro.value === "cancelado"
-          ? turnos.value.filter(
-              (turno) =>
-                turno.estado === "cancelado" ||
-                turno.estado === "liberada_por_ausencia",
-            )
-          : turnos.value.filter((turno) => turno.estado === filtro.value);
+        : turnos.value.filter((turno) => turno.estado === filtro.value);
 
     const texto = normalizar(busqueda.value.trim());
     if (!texto) return porEstado;
@@ -105,7 +133,9 @@ export function useTurnosAdmin() {
       await cargar();
 
       if (logrados)
-        aviso.value = `${logrados} ${logrados === 1 ? "turno cancelado" : "turnos cancelados"} con éxito.`;
+        mostrarAviso(
+          `${logrados} ${logrados === 1 ? "turno cancelado" : "turnos cancelados"} con éxito.`,
+        );
       if (fallados.length)
         errorMessage.value = fallados
           .map((resultado) => `#${resultado.id}: ${resultado.error}`)
@@ -157,8 +187,9 @@ export function useTurnosAdmin() {
 
         if (huboDeseleccion) {
           seleccionados.value = nuevosSeleccionados;
-          aviso.value =
-            "Algunas reservas seleccionadas cambiaron de estado y fueron deseleccionadas.";
+          mostrarAviso(
+            "Algunas reservas seleccionadas cambiaron de estado y fueron deseleccionadas.",
+          );
         }
       }
 
@@ -168,6 +199,7 @@ export function useTurnosAdmin() {
       }
       if (silencioso) {
         errorMessage.value = "";
+        if (aviso.value === AVISO_SIN_CONEXION) aviso.value = "";
       }
     } catch (fallo) {
       if (!silencioso) {
@@ -185,7 +217,7 @@ export function useTurnosAdmin() {
         const status = err?.status ?? err?.statusCode ?? err?.response?.status;
         if (status === 401) throw fallo;
         // F2: Mantener datos anteriores y mostrar aviso discreto sin borrar pantalla
-        aviso.value = "No pudimos conectar con el servidor. Probá de nuevo.";
+        mostrarAviso(AVISO_SIN_CONEXION, 0);
       }
     } finally {
       if (!silencioso) {
@@ -211,12 +243,14 @@ export function useTurnosAdmin() {
 
   return {
     visibles,
+    alumnos,
     seleccionados,
     elegidos,
     cancelablesVisibles,
     paginaElegida,
     cancelando,
     aviso,
+    mostrarAviso,
     alternar,
     alternarPagina,
     limpiarSeleccion,

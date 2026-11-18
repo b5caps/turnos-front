@@ -3,10 +3,12 @@ import {
   BLOQUE_MINUTOS,
   hoyIso,
   horaAMinutos,
+  partesDeIso,
   sumarDias,
 } from "~/constants/horarios";
 import { disponibilidadDelDia } from "~/api/disponibilidad";
 import { bloqueosActivosParaFecha, type Bloqueo } from "~/services/bloqueos";
+import { rolDeLaSesion } from "~/api/admin";
 import { esFeriado, type Feriado } from "~/services/feriados";
 import type {
   BloqueDisponibilidad,
@@ -21,14 +23,14 @@ function aplicarBloqueosADia(
   fechaStr: string,
 ) {
   for (const blq of bloqueos) {
-    const fIni = blq.fechaHoraInicio.slice(0, 10);
-    const fFin = blq.fechaHoraFin
-      ? blq.fechaHoraFin.slice(0, 10)
-      : "9999-12-31";
+    const inicio = partesDeIso(blq.fechaHoraInicio);
+    const fin = blq.fechaHoraFin ? partesDeIso(blq.fechaHoraFin) : null;
+    const fIni = inicio.fecha;
+    const fFin = fin ? fin.fecha : "9999-12-31";
     if (fechaStr < fIni || fechaStr > fFin) continue;
 
-    const hIni = blq.fechaHoraInicio.slice(11, 16);
-    const hFin = blq.fechaHoraFin ? blq.fechaHoraFin.slice(11, 16) : "23:59";
+    const hIni = inicio.hora;
+    const hFin = fin ? fin.hora : "23:59";
     const minIni = horaAMinutos(hIni);
     const minFin = horaAMinutos(hFin);
 
@@ -36,6 +38,7 @@ function aplicarBloqueosADia(
       if (recurso.tipo !== "SALA") continue;
       if (
         blq.recursoId !== undefined &&
+        blq.recursoId !== null &&
         String(blq.recursoId) !== String(recurso.id)
       ) {
         continue;
@@ -120,7 +123,9 @@ export function useDisponibilidad() {
     try {
       const [datos, bloqueos, feriado] = await Promise.all([
         consultarDisponibilidad(fecha.value),
-        bloqueosActivosParaFecha(fecha.value),
+        rolDeLaSesion() === "ADMIN"
+          ? bloqueosActivosParaFecha(fecha.value)
+          : Promise.resolve<Bloqueo[]>([]),
         esFeriado(fecha.value),
       ]);
 
@@ -137,9 +142,9 @@ export function useDisponibilidad() {
 
           // Verificar si hay un bloqueo que cierre el día completo
           const bloqueoDiaCompleto = bloqueos.find((b) => {
-            const hIni = b.fechaHoraInicio.slice(11, 16);
+            const hIni = partesDeIso(b.fechaHoraInicio).hora;
             const hFin = b.fechaHoraFin
-              ? b.fechaHoraFin.slice(11, 16)
+              ? partesDeIso(b.fechaHoraFin).hora
               : "23:59";
             return (
               hIni <= "10:00" &&
@@ -163,9 +168,11 @@ export function useDisponibilidad() {
                   ) {
                     return false;
                   }
-                  const minIni = horaAMinutos(bl.fechaHoraInicio.slice(11, 16));
+                  const minIni = horaAMinutos(
+                    partesDeIso(bl.fechaHoraInicio).hora,
+                  );
                   const minFin = bl.fechaHoraFin
-                    ? horaAMinutos(bl.fechaHoraFin.slice(11, 16))
+                    ? horaAMinutos(partesDeIso(bl.fechaHoraFin).hora)
                     : 24 * 60;
                   return bMin >= minIni && bMin < minFin;
                 });
