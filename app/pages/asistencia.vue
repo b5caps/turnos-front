@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { BOTON, BOTON_SUAVE, CAMPO, ETIQUETA } from "~/constants/estilos";
 import { useGrebAuth } from "~/composables/useGrebAuth";
 import {
@@ -10,10 +10,15 @@ import {
 } from "~/services/asistencia";
 import { listarEspaciosActivos } from "~/services/espacios.service";
 import { misReservas } from "~/api/reservas";
+import { obtenerToken, validarSesionApi } from "~/api/auth";
 import type { EspacioSala } from "~/types/espacios";
 import type { ReservaPropia } from "~/types/reservas";
 
-const { isAuthenticated, usuario, login, logout, isSubmitting } = useGrebAuth();
+definePageMeta({
+  layout: "asistencia",
+});
+
+const { isAuthenticated, usuario, login } = useGrebAuth();
 
 // Extracción del token QR desde el fragmento (#tokenQr=...)
 const tokenQr = ref<string | null>(null);
@@ -142,7 +147,7 @@ async function procesarAsistencia() {
       return;
     }
 
-    // PARTE 1 - Requisito 3: Si hay una reserva en curso sin llegada, registrar check-in automáticamente
+    // Si hay una reserva en curso sin llegada, registrar check-in automáticamente
     if (!reserva.fechaHoraCheckIn) {
       try {
         const resultadoCheckIn = await registrarCheckIn(
@@ -160,7 +165,7 @@ async function procesarAsistencia() {
   } catch (err: any) {
     const status = err?.status;
     if (status === 401) {
-      // F3: Sesión vencida
+      isAuthenticated.value = false;
       errorLogin.value =
         "Tu sesión ha vencido. Por favor, volvé a iniciar sesión.";
     } else if (
@@ -168,7 +173,6 @@ async function procesarAsistencia() {
       err?.name === "FetchError" ||
       !status
     ) {
-      // F2: Error de red
       errorRed.value = true;
       errorMensaje.value =
         "No pudimos conectar con el servidor. Probá de nuevo.";
@@ -208,6 +212,20 @@ const horaInicioTurno = computed(() => {
   return "";
 });
 
+watch(
+  isAuthenticated,
+  async (autenticado) => {
+    if (
+      autenticado &&
+      tokenQr.value &&
+      !asistenciaActual.value &&
+      !consultando.value
+    ) {
+      await procesarAsistencia();
+    }
+  },
+);
+
 onMounted(async () => {
   const token = extraerTokenDeHash();
   if (!token) {
@@ -216,6 +234,19 @@ onMounted(async () => {
     return;
   }
   tokenQr.value = token;
+
+  const tokenAuth = obtenerToken();
+  if (tokenAuth && !isAuthenticated.value) {
+    try {
+      const usuarioValido = await validarSesionApi(tokenAuth);
+      if (usuarioValido) {
+        usuario.value = usuarioValido;
+        isAuthenticated.value = true;
+      }
+    } catch {
+      // Token inválido o expirado
+    }
+  }
 
   if (isAuthenticated.value) {
     await procesarAsistencia();
@@ -227,64 +258,23 @@ onMounted(async () => {
 
 <template>
   <main
-    class="relative flex min-h-screen flex-col items-center justify-between bg-paper font-sans text-ink"
+    class="flex min-h-screen flex-col items-center justify-between bg-paper px-4 py-6 font-sans text-ink"
   >
-    <!-- Header -->
-    <header
-      class="sticky top-0 z-50 flex w-full items-center justify-between border-b border-line bg-white px-8 py-3.5 max-tablet:px-5"
-    >
-      <div class="flex items-center gap-6">
-        <img
-          src="/Logo_GREB.jpg"
-          alt="UTN GREB"
-          class="h-8 w-auto object-contain"
-        />
-        <span
-          class="rounded-full bg-notebook px-2.5 py-1 text-tiny font-bold tracking-wider text-notebook-ink uppercase"
-        >
-          Check-in de sala
-        </span>
-      </div>
-
-      <div v-if="isAuthenticated" class="flex items-center gap-4">
-        <NuxtLink
-          to="/mis-reservas"
-          class="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-ink no-underline"
-        >
-          <svg
-            class="size-3.5"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"
-            />
-            <path d="M6 2v20" />
-          </svg>
-          <span>Mis reservas</span>
-        </NuxtLink>
-
-        <span class="h-4 w-px bg-line" aria-hidden="true"></span>
-
-        <button
-          type="button"
-          class="flex cursor-pointer items-center gap-1.5 border-0 bg-transparent text-xs font-semibold text-muted transition-colors hover:text-ink disabled:opacity-50"
-          :disabled="isSubmitting"
-          @click="logout"
-        >
-          <span>Cerrar sesión</span>
-        </button>
-      </div>
+    <!-- Encabezado simple institucional (estático, sin sticky, sin menú ni enlaces de navegación del sistema) -->
+    <header class="w-full text-center">
+      <img
+        src="/Logo_GREB.jpg"
+        alt="UTN GREB"
+        class="mx-auto h-8 w-auto object-contain"
+      />
     </header>
 
     <!-- Contenido central para alguien parado en la puerta -->
-    <div class="my-auto w-full max-w-lg px-4 py-8 max-tablet:py-5">
+    <div class="my-auto w-full max-w-md py-4">
       <!-- 1. Token inválido o faltante -->
       <section
         v-if="tokenInvalido"
-        class="rounded-2xl border border-line bg-white p-7 text-center shadow-card"
+        class="rounded-2xl border border-line bg-white p-5 sm:p-7 text-center shadow-card"
       >
         <div
           class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-danger/10 text-danger"
@@ -310,14 +300,19 @@ onMounted(async () => {
           la sala.
         </p>
         <div class="mt-6 flex justify-center">
-          <NuxtLink :class="BOTON_SUAVE" to="/"> Ir al inicio </NuxtLink>
+          <NuxtLink
+            to="/"
+            :class="[BOTON_SUAVE, 'w-full sm:w-auto text-center']"
+          >
+            Ir al inicio
+          </NuxtLink>
         </div>
       </section>
 
       <!-- 2. Usuario NO autenticado: formulario de acceso directo conservando el token en URL -->
       <section
         v-else-if="!isAuthenticated"
-        class="rounded-2xl border border-line bg-white p-7 shadow-card"
+        class="rounded-2xl border border-line bg-white p-5 sm:p-7 shadow-card"
       >
         <div class="mb-5 text-center">
           <div
@@ -393,7 +388,7 @@ onMounted(async () => {
       <!-- 3. Consultando / Verificando -->
       <section
         v-else-if="consultando"
-        class="rounded-2xl border border-line bg-white p-10 text-center shadow-card"
+        class="rounded-2xl border border-line bg-white p-8 sm:p-10 text-center shadow-card"
       >
         <div
           class="mx-auto mb-4 size-10 animate-spin rounded-full border-3 border-line border-t-notebook-ink"
@@ -409,7 +404,7 @@ onMounted(async () => {
       <!-- 4. Error de red (F2) -->
       <section
         v-else-if="errorRed"
-        class="rounded-2xl border border-line bg-white p-7 text-center shadow-card"
+        class="rounded-2xl border border-line bg-white p-5 sm:p-7 text-center shadow-card"
       >
         <div
           class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-danger/10 text-danger"
@@ -432,9 +427,9 @@ onMounted(async () => {
         <p class="mt-2 text-xs leading-relaxed text-muted">
           No pudimos conectar con el servidor. Probá de nuevo.
         </p>
-        <div class="mt-6 flex justify-center gap-3">
+        <div class="mt-6 flex justify-center">
           <button
-            :class="[BOTON, 'bg-notebook-ink text-white']"
+            :class="[BOTON, 'w-full bg-notebook-ink text-white sm:w-auto']"
             type="button"
             @click="procesarAsistencia"
           >
@@ -446,7 +441,7 @@ onMounted(async () => {
       <!-- 5. Sin reservas elegibles para esta sala en este momento -->
       <section
         v-else-if="sinReservas"
-        class="rounded-2xl border border-line bg-white p-7 text-center shadow-card"
+        class="rounded-2xl border border-line bg-white p-5 sm:p-7 text-center shadow-card"
       >
         <div
           class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-hairline text-muted"
@@ -475,20 +470,35 @@ onMounted(async () => {
           cuyo horario ya haya iniciado y esté dentro del plazo de tolerancia.
         </p>
         <div class="mt-6 flex flex-wrap justify-center gap-3">
+          <button
+            :class="[BOTON, 'w-full bg-notebook-ink text-white sm:w-auto']"
+            type="button"
+            @click="procesarAsistencia"
+          >
+            Volver a verificar
+          </button>
           <NuxtLink
             to="/mis-reservas"
-            :class="[BOTON, 'bg-notebook-ink text-white no-underline']"
+            :class="[BOTON_SUAVE, 'w-full sm:w-auto text-center']"
           >
             Ver mis reservas
           </NuxtLink>
-          <NuxtLink to="/" :class="BOTON_SUAVE"> Reservar un espacio </NuxtLink>
+          <NuxtLink
+            to="/"
+            :class="[BOTON_SUAVE, 'w-full sm:w-auto text-center']"
+          >
+            Reservar un espacio
+          </NuxtLink>
         </div>
       </section>
 
       <!-- 6. Error general del backend (plazo vencido, etc.) -->
       <section
-        v-else-if="errorMensaje && !asistenciaActual"
-        class="rounded-2xl border border-line bg-white p-7 text-center shadow-card"
+        v-else-if="
+          errorMensaje &&
+          (!asistenciaActual || !asistenciaActual.fechaHoraCheckIn)
+        "
+        class="rounded-2xl border border-line bg-white p-5 sm:p-7 text-center shadow-card"
       >
         <div
           class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-danger/10 text-danger"
@@ -508,27 +518,32 @@ onMounted(async () => {
         <h2 class="text-2xl font-bold tracking-tight text-ink">
           No se pudo registrar la asistencia
         </h2>
-        <p class="mt-2 text-xs leading-relaxed text-danger font-medium">
+        <p
+          class="mt-2 text-xs leading-relaxed text-danger font-medium break-words"
+        >
           {{ errorMensaje }}
         </p>
-        <div class="mt-6 flex justify-center gap-3">
-          <NuxtLink :class="BOTON_SUAVE" to="/mis-reservas">
-            Ver mis reservas
-          </NuxtLink>
+        <div class="mt-6 flex flex-wrap justify-center gap-3">
           <button
-            :class="[BOTON, 'bg-notebook-ink text-white']"
+            :class="[BOTON, 'w-full bg-notebook-ink text-white sm:w-auto']"
             type="button"
             @click="procesarAsistencia"
           >
             Reintentar
           </button>
+          <NuxtLink
+            to="/mis-reservas"
+            :class="[BOTON_SUAVE, 'w-full sm:w-auto text-center']"
+          >
+            Ver mis reservas
+          </NuxtLink>
         </div>
       </section>
 
       <!-- 7. Caso: Reserva dada de baja por ausencia (LIBERADA_POR_AUSENCIA) -->
       <section
         v-else-if="asistenciaActual?.estado === 'LIBERADA_POR_AUSENCIA'"
-        class="rounded-2xl border border-line bg-white p-7 text-center shadow-card"
+        class="rounded-2xl border border-line bg-white p-5 sm:p-7 text-center shadow-card"
       >
         <div
           class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-danger/10 text-danger"
@@ -560,10 +575,13 @@ onMounted(async () => {
           baja automáticamente. Si necesitás un espacio, por favor solicitá un
           nuevo turno.
         </p>
-        <div class="mt-6 flex justify-center gap-3">
+        <div class="mt-6 flex justify-center">
           <NuxtLink
             to="/"
-            :class="[BOTON, 'bg-notebook-ink text-white no-underline']"
+            :class="[
+              BOTON,
+              'w-full bg-notebook-ink text-white no-underline sm:w-auto text-center',
+            ]"
           >
             Solicitar nuevo turno
           </NuxtLink>
@@ -573,7 +591,7 @@ onMounted(async () => {
       <!-- 8. Caso: Salida registrada exitosamente -->
       <section
         v-else-if="exitoSalida"
-        class="rounded-2xl border border-line bg-white p-7 text-center shadow-card"
+        class="rounded-2xl border border-line bg-white p-5 sm:p-7 text-center shadow-card"
       >
         <div
           class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-mint text-forest-deep"
@@ -599,7 +617,7 @@ onMounted(async () => {
             Finalizado
           </span>
         </div>
-        <h2 class="text-3xl font-extrabold tracking-tight text-ink">
+        <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
           ¡Salida registrada!
         </h2>
         <p class="mt-2 text-xs leading-relaxed text-muted">
@@ -609,7 +627,10 @@ onMounted(async () => {
         <div class="mt-6 flex justify-center">
           <NuxtLink
             to="/"
-            :class="[BOTON, 'bg-notebook-ink text-white no-underline']"
+            :class="[
+              BOTON,
+              'w-full bg-notebook-ink text-white no-underline sm:w-auto text-center',
+            ]"
           >
             Volver al inicio
           </NuxtLink>
@@ -619,7 +640,7 @@ onMounted(async () => {
       <!-- 9. Caso: Turno ya finalizado previamente -->
       <section
         v-else-if="asistenciaActual?.estado === 'FINALIZADA'"
-        class="rounded-2xl border border-line bg-white p-7 text-center shadow-card"
+        class="rounded-2xl border border-line bg-white p-5 sm:p-7 text-center shadow-card"
       >
         <div
           class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-hairline text-muted"
@@ -649,8 +670,11 @@ onMounted(async () => {
           Tu asistencia y tu salida ya fueron registradas previamente para este
           turno.
         </p>
-        <div class="mt-6 flex justify-center gap-3">
-          <NuxtLink to="/mis-reservas" :class="BOTON_SUAVE">
+        <div class="mt-6 flex justify-center">
+          <NuxtLink
+            to="/mis-reservas"
+            :class="[BOTON_SUAVE, 'w-full sm:w-auto text-center']"
+          >
             Ver mis reservas
           </NuxtLink>
         </div>
@@ -659,9 +683,12 @@ onMounted(async () => {
       <!-- 10. Caso: Llegada recién registrada automáticamente o confirmada -->
       <section
         v-else-if="
-          exitoLlegada || (!asistenciaActual?.fechaHoraCheckIn && !errorMensaje)
+          exitoLlegada ||
+          (asistenciaActual &&
+            !asistenciaActual.fechaHoraCheckIn &&
+            !errorMensaje)
         "
-        class="rounded-2xl border border-line bg-white p-7 text-center shadow-card"
+        class="rounded-2xl border border-line bg-white p-5 sm:p-7 text-center shadow-card"
       >
         <div
           class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-mint text-forest-deep"
@@ -687,7 +714,7 @@ onMounted(async () => {
             En curso
           </span>
         </div>
-        <h1 class="text-3xl font-extrabold tracking-tight text-ink">
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
           ¡Llegada registrada!
         </h1>
         <p class="mt-2 text-xs text-muted">
@@ -699,26 +726,28 @@ onMounted(async () => {
           class="mt-6 rounded-xl border border-line bg-hairline/60 p-4 text-left text-xs"
         >
           <div
-            class="flex items-center justify-between py-1 border-b border-line/60"
+            class="flex items-center justify-between py-1 border-b border-line/60 gap-2"
           >
-            <span class="text-muted">Espacio</span>
-            <span class="font-bold text-ink">
+            <span class="text-muted shrink-0">Espacio</span>
+            <span class="font-bold text-ink truncate text-right">
               {{ salaActual?.identificador || "Sala de estudio" }}
             </span>
           </div>
           <div
             v-if="horaInicioTurno"
-            class="flex items-center justify-between py-1 border-b border-line/60"
+            class="flex items-center justify-between py-1 border-b border-line/60 gap-2"
           >
-            <span class="text-muted">Inicio del turno</span>
-            <span class="font-bold text-ink">{{ horaInicioTurno }} hs</span>
+            <span class="text-muted shrink-0">Inicio del turno</span>
+            <span class="font-bold text-ink text-right"
+              >{{ horaInicioTurno }} hs</span
+            >
           </div>
           <div
             v-if="asistenciaActual?.id"
-            class="flex items-center justify-between py-1"
+            class="flex items-center justify-between py-1 gap-2"
           >
-            <span class="text-muted">Reserva</span>
-            <span class="font-semibold text-muted"
+            <span class="text-muted shrink-0">Reserva</span>
+            <span class="font-semibold text-muted text-right"
               >#{{ asistenciaActual.id }}</span
             >
           </div>
@@ -729,10 +758,13 @@ onMounted(async () => {
           para registrar tu salida.
         </p>
 
-        <div class="mt-6 flex justify-center gap-3">
+        <div class="mt-6 flex justify-center">
           <NuxtLink
             to="/mis-reservas"
-            :class="[BOTON, 'bg-notebook-ink text-white no-underline']"
+            :class="[
+              BOTON,
+              'w-full bg-notebook-ink text-white no-underline sm:w-auto text-center',
+            ]"
           >
             Ver mis reservas
           </NuxtLink>
@@ -742,7 +774,7 @@ onMounted(async () => {
       <!-- 11. Caso: Llegada ya registrada previamente, ofreciendo registrar salida -->
       <section
         v-else-if="asistenciaActual?.fechaHoraCheckIn"
-        class="rounded-2xl border border-line bg-white p-7 text-center shadow-card"
+        class="rounded-2xl border border-line bg-white p-5 sm:p-7 text-center shadow-card"
       >
         <div
           class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-notebook/30 text-notebook-ink"
@@ -778,7 +810,7 @@ onMounted(async () => {
 
         <div
           v-if="errorMensaje"
-          class="mt-4 rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs font-semibold text-danger"
+          class="mt-4 rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs font-semibold text-danger break-words"
         >
           {{ errorMensaje }}
         </div>
@@ -801,7 +833,10 @@ onMounted(async () => {
             }}
           </button>
 
-          <NuxtLink :class="BOTON_SUAVE" to="/mis-reservas">
+          <NuxtLink
+            :class="[BOTON_SUAVE, 'w-full text-center']"
+            to="/mis-reservas"
+          >
             Continuar en la sala (Ver mis reservas)
           </NuxtLink>
         </div>
@@ -809,11 +844,11 @@ onMounted(async () => {
     </div>
 
     <!-- Footer -->
-    <footer class="mb-6 space-y-0.5 text-center text-xs text-muted">
+    <footer class="mt-auto space-y-0.5 pt-4 text-center text-xs text-muted">
       <p class="font-semibold text-ink">
         Gestor de Reservas y Espacios de Biblioteca
       </p>
-      <p class="text-mini text-faint">
+      <p class="text-micro text-muted">
         Universidad Tecnológica Nacional • Facultad Regional San Francisco
       </p>
     </footer>
