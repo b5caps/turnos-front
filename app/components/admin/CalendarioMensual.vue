@@ -286,7 +286,7 @@ onMounted(cargarDatos);
           :key="dia.fechaIso"
           type="button"
           :class="[
-            'group relative flex min-h-[85px] tablet:min-h-[115px] flex-col justify-between rounded-xl border p-2 text-left transition-all cursor-pointer outline-none focus:ring-2 focus:ring-forest',
+            'group relative flex min-h-[56px] tablet:min-h-[115px] flex-col justify-between overflow-hidden rounded-xl border p-1 tablet:p-2 text-left transition-all cursor-pointer outline-none focus:ring-2 focus:ring-forest',
             dia.esHoy
               ? 'border-2 border-forest bg-mint/15 shadow-xs'
               : dia.seleccionado
@@ -322,10 +322,29 @@ onMounted(cargarDatos);
 
           <!-- Contenido central: feriado, cerrado completo, parcial o libre -->
           <div class="my-1 flex flex-col gap-1 w-full overflow-hidden">
+            <!-- En celular el cuadradito es muy angosto para texto: solo puntos -->
+            <div
+              v-if="dia.esMesActual"
+              class="flex items-center justify-center gap-1 tablet:hidden"
+            >
+              <span
+                v-if="dia.feriado"
+                class="size-1.5 shrink-0 rounded-full bg-coral"
+              ></span>
+              <span
+                v-if="dia.esCerradoCompleto"
+                class="size-1.5 shrink-0 rounded-full bg-estado-cancelado"
+              ></span>
+              <span
+                v-else-if="dia.cantidadBloqueos > 0"
+                class="size-1.5 shrink-0 rounded-full bg-estado-pendiente"
+              ></span>
+            </div>
+
             <!-- Feriado con su nombre visible -->
             <div
               v-if="dia.feriado"
-              class="rounded bg-coral/10 border border-coral/25 px-1.5 py-0.5 text-micro font-bold text-coral-dark truncate w-full"
+              class="max-tablet:hidden rounded bg-coral/10 border border-coral/25 px-1.5 py-0.5 text-micro font-bold text-coral-dark truncate w-full"
               :title="`Feriado: ${dia.feriado.nombre}`"
             >
               <span class="max-tablet:truncate">{{ dia.feriado.nombre }}</span>
@@ -334,7 +353,7 @@ onMounted(cargarDatos);
             <!-- Bloqueo completo: "Cerrado" -->
             <div
               v-if="dia.esCerradoCompleto"
-              class="rounded bg-estado-cancelado-suave border border-estado-cancelado/20 px-1.5 py-0.5 text-micro font-bold text-estado-cancelado truncate w-full"
+              class="max-tablet:hidden rounded bg-estado-cancelado-suave border border-estado-cancelado/20 px-1.5 py-0.5 text-micro font-bold text-estado-cancelado truncate w-full"
               :title="
                 dia.motivoCierre
                   ? `Cerrado: ${dia.motivoCierre}`
@@ -353,7 +372,7 @@ onMounted(cargarDatos);
             <!-- Bloqueos parciales (si no está cerrado completo) -->
             <div
               v-else-if="dia.cantidadBloqueos > 0"
-              class="rounded bg-estado-pendiente-suave border border-estado-pendiente/20 px-1.5 py-0.5 text-micro font-semibold text-estado-pendiente truncate w-full"
+              class="max-tablet:hidden rounded bg-estado-pendiente-suave border border-estado-pendiente/20 px-1.5 py-0.5 text-micro font-semibold text-estado-pendiente truncate w-full"
               :title="`${dia.cantidadBloqueos} ${dia.cantidadBloqueos === 1 ? 'bloqueo registrado' : 'bloqueos registrados'}`"
             >
               <span>
@@ -365,14 +384,16 @@ onMounted(cargarDatos);
             <!-- Libre -->
             <div
               v-else-if="dia.esMesActual && !dia.feriado"
-              class="text-micro font-medium text-faint"
+              class="max-tablet:hidden text-micro font-medium text-faint"
             >
               Libre
             </div>
           </div>
 
           <!-- Pie del cuadradito -->
-          <div class="flex items-center justify-end w-full pt-0.5">
+          <div
+            class="max-tablet:hidden flex items-center justify-end w-full pt-0.5"
+          >
             <span
               class="text-[9px] font-semibold text-faint group-hover:text-forest transition-colors flex items-center gap-0.5"
             >
