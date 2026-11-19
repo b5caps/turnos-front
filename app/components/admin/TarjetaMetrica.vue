@@ -22,12 +22,12 @@ const TRAZO: Record<ClaveEstado, string> = {
   <article
     :class="[
       ESTADO_FUERTE[tono],
-      'flex items-center gap-4 rounded-xl p-5 text-white shadow-card',
+      'flex items-center gap-4 rounded-xl p-5 text-white shadow-card max-tablet:gap-3 max-tablet:p-4',
     ]"
   >
     <span aria-hidden="true" class="grid shrink-0 place-items-center">
       <svg
-        class="size-9"
+        class="size-9 max-tablet:size-7"
         fill="none"
         stroke="currentColor"
         stroke-linecap="round"
@@ -39,9 +39,11 @@ const TRAZO: Record<ClaveEstado, string> = {
       </svg>
     </span>
     <div class="flex min-w-0 flex-col">
-      <strong class="text-4xl leading-none font-bold">{{ valor }}</strong>
+      <strong class="text-4xl leading-none font-bold max-tablet:text-3xl">{{
+        valor
+      }}</strong>
       <span
-        class="mt-2 text-tiny font-bold tracking-wider uppercase opacity-85"
+        class="mt-2 text-tiny font-bold tracking-wider uppercase opacity-85 max-tablet:mt-1.5 max-tablet:text-mini max-tablet:tracking-normal"
         >{{ etiqueta }}</span
       >
       <span v-if="detalle" class="mt-1 text-mini opacity-70">{{

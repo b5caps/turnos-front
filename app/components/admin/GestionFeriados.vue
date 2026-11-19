@@ -326,66 +326,113 @@ onMounted(cargar);
         <p class="m-0">No hay feriados cargados actualmente.</p>
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr
-              class="border-b border-line text-micro tracking-wider uppercase text-muted"
-            >
-              <th class="py-3 px-3">Fecha</th>
-              <th class="py-3 px-3">Nombre</th>
-              <th class="py-3 px-3">Origen</th>
-              <th class="py-3 px-3 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-line">
-            <tr
-              v-for="f in feriados"
-              :key="f.fecha"
-              class="hover:bg-paper/50 transition-colors"
-            >
-              <td class="py-3 px-3 font-semibold text-ink whitespace-nowrap">
+      <div v-else>
+        <div class="overflow-x-auto max-tablet:hidden">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr
+                class="border-b border-line text-micro tracking-wider uppercase text-muted"
+              >
+                <th class="py-3 px-3">Fecha</th>
+                <th class="py-3 px-3">Nombre</th>
+                <th class="py-3 px-3">Origen</th>
+                <th class="py-3 px-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-line">
+              <tr
+                v-for="f in feriados"
+                :key="f.fecha"
+                class="hover:bg-paper/50 transition-colors"
+              >
+                <td class="py-3 px-3 font-semibold text-ink whitespace-nowrap">
+                  {{ fechaLegible(f.fecha) }}
+                </td>
+
+                <td class="py-3 px-3 text-ink">
+                  {{ f.nombre }}
+                </td>
+
+                <td class="py-3 px-3">
+                  <span
+                    :class="[
+                      'inline-flex items-center rounded-full px-2.5 py-0.5 text-micro font-bold',
+                      f.origen === 'MANUAL'
+                        ? 'bg-mint text-forest-deep'
+                        : 'bg-notebook text-notebook-ink',
+                    ]"
+                  >
+                    {{ f.origen }}
+                  </span>
+                </td>
+
+                <td class="py-3 px-3 text-right space-x-2 whitespace-nowrap">
+                  <button
+                    :class="BOTON_SUAVE"
+                    :disabled="guardando"
+                    type="button"
+                    @click="iniciarEdicion(f)"
+                  >
+                    Modificar
+                  </button>
+                  <button
+                    class="cursor-pointer text-xs font-semibold text-danger hover:underline disabled:opacity-50"
+                    :disabled="guardando"
+                    type="button"
+                    @click="eliminar(f.fecha)"
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ul class="m-0 list-none divide-y divide-line p-0 tablet:hidden">
+          <li
+            v-for="f in feriados"
+            :key="f.fecha"
+            class="flex flex-col gap-1.5 py-3"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <span class="text-xs font-semibold text-ink">
                 {{ fechaLegible(f.fecha) }}
-              </td>
+              </span>
+              <span
+                :class="[
+                  'shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-micro font-bold',
+                  f.origen === 'MANUAL'
+                    ? 'bg-mint text-forest-deep'
+                    : 'bg-notebook text-notebook-ink',
+                ]"
+              >
+                {{ f.origen }}
+              </span>
+            </div>
 
-              <td class="py-3 px-3 text-ink">
-                {{ f.nombre }}
-              </td>
+            <p class="m-0 text-xs break-words text-ink">{{ f.nombre }}</p>
 
-              <td class="py-3 px-3">
-                <span
-                  :class="[
-                    'inline-flex items-center rounded-full px-2.5 py-0.5 text-micro font-bold',
-                    f.origen === 'MANUAL'
-                      ? 'bg-mint text-forest-deep'
-                      : 'bg-notebook text-notebook-ink',
-                  ]"
-                >
-                  {{ f.origen }}
-                </span>
-              </td>
-
-              <td class="py-3 px-3 text-right space-x-2 whitespace-nowrap">
-                <button
-                  :class="BOTON_SUAVE"
-                  :disabled="guardando"
-                  type="button"
-                  @click="iniciarEdicion(f)"
-                >
-                  Modificar
-                </button>
-                <button
-                  class="cursor-pointer text-xs font-semibold text-danger hover:underline disabled:opacity-50"
-                  :disabled="guardando"
-                  type="button"
-                  @click="eliminar(f.fecha)"
-                >
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+            <div class="flex items-center gap-4">
+              <button
+                :class="BOTON_SUAVE"
+                :disabled="guardando"
+                type="button"
+                @click="iniciarEdicion(f)"
+              >
+                Modificar
+              </button>
+              <button
+                class="cursor-pointer text-xs font-semibold text-danger hover:underline disabled:opacity-50"
+                :disabled="guardando"
+                type="button"
+                @click="eliminar(f.fecha)"
+              >
+                Eliminar
+              </button>
+            </div>
+          </li>
+        </ul>
       </div>
     </div>
   </div>

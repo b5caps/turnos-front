@@ -551,52 +551,82 @@ onMounted(async () => {
         </p>
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr
-              class="border-b border-line text-micro tracking-wider uppercase text-muted"
-            >
-              <th class="py-3 px-3">Sala</th>
-              <th class="py-3 px-3">Horario</th>
-              <th class="py-3 px-3">Motivo</th>
-              <th class="py-3 px-3 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-line">
-            <tr
-              v-for="b in bloqueosDelDia"
-              :key="b.id"
-              class="hover:bg-paper/50 transition-colors"
-            >
-              <td class="py-3 px-3 font-semibold text-ink">
-                {{ obtenerNombreSala(b.recursoId) }}
-              </td>
-
-              <td class="py-3 px-3 text-ink">
-                {{ formatearRango(b.fechaHoraInicio, b.fechaHoraFin) }}
-              </td>
-
-              <td
-                class="py-3 px-3 text-muted max-w-xs truncate"
-                :title="b.motivo"
+      <div v-else>
+        <div class="overflow-x-auto max-tablet:hidden">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr
+                class="border-b border-line text-micro tracking-wider uppercase text-muted"
               >
-                {{ b.motivo }}
-              </td>
+                <th class="py-3 px-3">Sala</th>
+                <th class="py-3 px-3">Horario</th>
+                <th class="py-3 px-3">Motivo</th>
+                <th class="py-3 px-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-line">
+              <tr
+                v-for="b in bloqueosDelDia"
+                :key="b.id"
+                class="hover:bg-paper/50 transition-colors"
+              >
+                <td class="py-3 px-3 font-semibold text-ink">
+                  {{ obtenerNombreSala(b.recursoId) }}
+                </td>
 
-              <td class="py-3 px-3 text-right whitespace-nowrap">
-                <button
-                  class="cursor-pointer text-xs font-semibold text-danger hover:underline disabled:opacity-50"
-                  :disabled="guardando"
-                  type="button"
-                  @click="eliminar(b.id)"
+                <td class="py-3 px-3 text-ink">
+                  {{ formatearRango(b.fechaHoraInicio, b.fechaHoraFin) }}
+                </td>
+
+                <td
+                  class="py-3 px-3 text-muted max-w-xs truncate"
+                  :title="b.motivo"
                 >
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                  {{ b.motivo }}
+                </td>
+
+                <td class="py-3 px-3 text-right whitespace-nowrap">
+                  <button
+                    class="cursor-pointer text-xs font-semibold text-danger hover:underline disabled:opacity-50"
+                    :disabled="guardando"
+                    type="button"
+                    @click="eliminar(b.id)"
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ul class="m-0 list-none divide-y divide-line p-0 tablet:hidden">
+          <li
+            v-for="b in bloqueosDelDia"
+            :key="b.id"
+            class="flex flex-col gap-1.5 py-3"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <span class="text-xs font-semibold break-words text-ink">
+                {{ obtenerNombreSala(b.recursoId) }}
+              </span>
+              <span class="shrink-0 text-xs text-ink">
+                {{ formatearRango(b.fechaHoraInicio, b.fechaHoraFin) }}
+              </span>
+            </div>
+
+            <p class="m-0 text-micro break-words text-muted">{{ b.motivo }}</p>
+
+            <button
+              class="w-fit cursor-pointer text-xs font-semibold text-danger hover:underline disabled:opacity-50"
+              :disabled="guardando"
+              type="button"
+              @click="eliminar(b.id)"
+            >
+              Eliminar
+            </button>
+          </li>
+        </ul>
       </div>
     </div>
   </div>
